@@ -1,13 +1,19 @@
 """
 Script management for NodeToCode Python environment.
 
-Provides CRUD operations for Python scripts stored in Content/Python/scripts/.
+Provides CRUD operations for Python scripts with dual-path search:
+- Plugin bundled scripts: Plugins/NodeToCode/Content/Python/scripts/ (read-only)
+- Project user scripts: Content/Python/scripts/ (read-write)
+
 Scripts are indexed in script_registry.json for fast search and discovery.
+All list/search/get operations search BOTH locations, with project scripts
+taking precedence over plugin scripts with the same name.
+Save/delete operations only affect project scripts.
 
 Usage:
     import nodetocode as n2c
 
-    # List available scripts
+    # List available scripts (includes both plugin and project scripts)
     scripts = n2c.list_scripts()
 
     # Search for scripts
@@ -15,11 +21,12 @@ Usage:
 
     # Get script code and metadata
     script = n2c.get_script("create_health_system")
+    # script["source"] will be "plugin" or "project"
 
     # Execute a saved script
     result = n2c.run_script("create_health_system", initial_health=100.0)
 
-    # Save a new script
+    # Save a new script (always saves to project folder)
     n2c.save_script(
         "my_script",
         "print('Hello!')",
@@ -27,7 +34,7 @@ Usage:
         tags=["example", "hello"]
     )
 
-    # Delete a script
+    # Delete a script (only project scripts can be deleted)
     n2c.delete_script("my_script")
 """
 
@@ -42,15 +49,32 @@ import unreal
 from .utils import make_success_result, make_error_result, log_info, log_warning, log_error
 
 
-# Script storage paths - project-level in Content/Python/scripts/
-def _get_scripts_dir() -> str:
-    """Get the scripts storage directory path."""
+# Script storage paths
+def _get_project_scripts_dir() -> str:
+    """Get the project-level scripts directory (user scripts)."""
     return os.path.join(unreal.Paths.project_content_dir(), "Python", "scripts")
 
 
+def _get_plugin_scripts_dir() -> str:
+    """Get the plugin's bundled scripts directory."""
+    # Find the NodeToCode plugin's Content/Python/scripts folder
+    plugin_dir = unreal.Paths.project_plugins_dir()
+    return os.path.join(plugin_dir, "NodeToCode", "Content", "Python", "scripts")
+
+
+def _get_scripts_dir() -> str:
+    """Get the primary scripts storage directory (project-level for user scripts)."""
+    return _get_project_scripts_dir()
+
+
 def _get_registry_path() -> str:
-    """Get the script registry JSON file path."""
-    return os.path.join(_get_scripts_dir(), "script_registry.json")
+    """Get the project script registry JSON file path."""
+    return os.path.join(_get_project_scripts_dir(), "script_registry.json")
+
+
+def _get_plugin_registry_path() -> str:
+    """Get the plugin's bundled script registry JSON file path."""
+    return os.path.join(_get_plugin_scripts_dir(), "script_registry.json")
 
 
 def _ensure_scripts_dir() -> bool:
@@ -77,16 +101,16 @@ def _ensure_scripts_dir() -> bool:
         return False
 
 
-def _load_registry() -> Dict[str, Any]:
+def _load_single_registry(registry_path: str) -> Dict[str, Any]:
     """
-    Load the script registry from JSON.
+    Load a single script registry from JSON.
+
+    Args:
+        registry_path: Path to the registry JSON file
 
     Returns:
         Registry dictionary or empty default structure
     """
-    registry_path = _get_registry_path()
-
-    # Return empty registry if file doesn't exist
     if not os.path.exists(registry_path):
         return {
             "version": "1.0",
@@ -102,7 +126,7 @@ def _load_registry() -> Dict[str, Any]:
         with open(registry_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        log_error(f"Failed to load script registry: {e}")
+        log_error(f"Failed to load script registry from {registry_path}: {e}")
         return {
             "version": "1.0",
             "scripts": {},
@@ -114,9 +138,70 @@ def _load_registry() -> Dict[str, Any]:
         }
 
 
+def _load_registry() -> Dict[str, Any]:
+    """
+    Load and merge script registries from both plugin and project directories.
+
+    Plugin scripts are loaded first, then project scripts are merged on top.
+    Project scripts with the same name will override plugin scripts.
+
+    Returns:
+        Merged registry dictionary
+    """
+    # Load plugin's bundled scripts first
+    plugin_registry = _load_single_registry(_get_plugin_registry_path())
+
+    # Mark plugin scripts with their source
+    for name, info in plugin_registry.get("scripts", {}).items():
+        info["_source"] = "plugin"
+        # Store the base directory for resolving paths
+        info["_base_dir"] = _get_plugin_scripts_dir()
+
+    # Load project's user scripts
+    project_registry = _load_single_registry(_get_registry_path())
+
+    # Mark project scripts with their source
+    for name, info in project_registry.get("scripts", {}).items():
+        info["_source"] = "project"
+        info["_base_dir"] = _get_project_scripts_dir()
+
+    # Merge: project scripts override plugin scripts with same name
+    merged_scripts = {}
+    merged_scripts.update(plugin_registry.get("scripts", {}))
+    merged_scripts.update(project_registry.get("scripts", {}))
+
+    # Merge categories
+    merged_categories = list(set(
+        plugin_registry.get("categories", ["general"]) +
+        project_registry.get("categories", ["general"])
+    ))
+
+    return {
+        "version": "1.0",
+        "scripts": merged_scripts,
+        "categories": sorted(merged_categories),
+        "stats": {
+            "total_scripts": len(merged_scripts),
+            "last_updated": datetime.utcnow().isoformat() + "Z"
+        }
+    }
+
+
+def _load_project_registry() -> Dict[str, Any]:
+    """
+    Load only the project's script registry (not merged with plugin).
+
+    Use this for save/delete operations that should only affect project scripts.
+
+    Returns:
+        Project registry dictionary
+    """
+    return _load_single_registry(_get_registry_path())
+
+
 def _save_registry(registry: Dict[str, Any]) -> bool:
     """
-    Save the script registry to JSON.
+    Save the script registry to JSON (project registry only).
 
     Args:
         registry: Registry dictionary to save
@@ -129,13 +214,28 @@ def _save_registry(registry: Dict[str, Any]) -> bool:
 
     registry_path = _get_registry_path()
 
+    # Remove internal metadata fields before saving
+    clean_registry = {
+        "version": registry.get("version", "1.0"),
+        "scripts": {},
+        "categories": registry.get("categories", ["general"]),
+        "stats": registry.get("stats", {})
+    }
+
+    # Only save project scripts, exclude plugin scripts and internal fields
+    for name, info in registry.get("scripts", {}).items():
+        if info.get("_source") != "plugin":
+            # Create a clean copy without internal fields
+            clean_info = {k: v for k, v in info.items() if not k.startswith("_")}
+            clean_registry["scripts"][name] = clean_info
+
     # Update stats
-    registry["stats"]["total_scripts"] = len(registry.get("scripts", {}))
-    registry["stats"]["last_updated"] = datetime.utcnow().isoformat() + "Z"
+    clean_registry["stats"]["total_scripts"] = len(clean_registry.get("scripts", {}))
+    clean_registry["stats"]["last_updated"] = datetime.utcnow().isoformat() + "Z"
 
     try:
         with open(registry_path, 'w', encoding='utf-8') as f:
-            json.dump(registry, f, indent=2)
+            json.dump(clean_registry, f, indent=2)
         return True
     except Exception as e:
         log_error(f"Failed to save script registry: {e}")
@@ -243,6 +343,7 @@ def list_scripts(category: Optional[str] = None, limit: int = 20) -> Dict[str, A
                 "description": info.get("description", ""),
                 "category": info.get("category", "general"),
                 "tags": info.get("tags", []),
+                "source": info.get("_source", "project"),
                 "usage_count": info.get("usage_count", 0),
                 "last_used": info.get("last_used"),
             })
@@ -301,6 +402,7 @@ def search_scripts(query: str, limit: int = 10) -> Dict[str, Any]:
                     "description": info.get("description", ""),
                     "category": info.get("category", "general"),
                     "tags": tags,
+                    "source": info.get("_source", "project"),
                     "relevance": round(combined, 2),
                     "usage_count": info.get("usage_count", 0),
                 })
@@ -327,11 +429,13 @@ def get_script(name: str) -> Dict[str, Any]:
     """
     Load full script code and metadata by name.
 
+    Searches both plugin bundled scripts and project user scripts.
+
     Args:
         name: Script name (without .py extension)
 
     Returns:
-        {success, data: {name, code, description, tags, category, parameters, ...}, error}
+        {success, data: {name, code, description, tags, category, parameters, source, ...}, error}
     """
     if not name or not name.strip():
         return make_error_result("Script name cannot be empty")
@@ -354,8 +458,9 @@ def get_script(name: str) -> Dict[str, Any]:
         if not script_info:
             return make_error_result(f"Script '{name}' not found")
 
-        # Load the script code
-        script_path = os.path.join(_get_scripts_dir(), script_info.get("path", ""))
+        # Get the base directory for this script (plugin or project)
+        base_dir = script_info.get("_base_dir", _get_scripts_dir())
+        script_path = os.path.join(base_dir, script_info.get("path", ""))
 
         if not os.path.exists(script_path):
             return make_error_result(f"Script file not found: {script_path}")
@@ -371,6 +476,7 @@ def get_script(name: str) -> Dict[str, Any]:
             "category": script_info.get("category", "general"),
             "parameters": script_info.get("parameters", []),
             "path": script_info.get("path"),
+            "source": script_info.get("_source", "project"),
             "created": script_info.get("created"),
             "last_used": script_info.get("last_used"),
             "usage_count": script_info.get("usage_count", 0),
@@ -436,13 +542,14 @@ def run_script(name: str, **kwargs) -> Dict[str, Any]:
 
 
 def _update_usage_stats(name: str) -> None:
-    """Update usage count and last_used timestamp for a script."""
+    """Update usage count and last_used timestamp for a project script."""
     try:
-        registry = _load_registry()
-        if name in registry.get("scripts", {}):
-            registry["scripts"][name]["usage_count"] = registry["scripts"][name].get("usage_count", 0) + 1
-            registry["scripts"][name]["last_used"] = datetime.utcnow().isoformat() + "Z"
-            _save_registry(registry)
+        # Only update stats for project scripts
+        project_registry = _load_project_registry()
+        if name in project_registry.get("scripts", {}):
+            project_registry["scripts"][name]["usage_count"] = project_registry["scripts"][name].get("usage_count", 0) + 1
+            project_registry["scripts"][name]["last_used"] = datetime.utcnow().isoformat() + "Z"
+            _save_registry(project_registry)
     except Exception as e:
         log_warning(f"Failed to update usage stats: {e}")
 
@@ -509,8 +616,8 @@ def save_script(
         with open(script_path, 'w', encoding='utf-8') as f:
             f.write(code)
 
-        # Update registry
-        registry = _load_registry()
+        # Update project registry only (not plugin registry)
+        registry = _load_project_registry()
         now = datetime.utcnow().isoformat() + "Z"
 
         registry["scripts"][sanitized_name] = {
@@ -549,6 +656,8 @@ def delete_script(name: str) -> Dict[str, Any]:
     """
     Remove a script from the library.
 
+    Only project (user) scripts can be deleted. Plugin bundled scripts are read-only.
+
     Args:
         name: Script name to delete
 
@@ -576,17 +685,23 @@ def delete_script(name: str) -> Dict[str, Any]:
         if not actual_name:
             return make_error_result(f"Script '{name}' not found")
 
-        # Delete the file
-        script_path = os.path.join(_get_scripts_dir(), script_info.get("path", ""))
+        # Prevent deletion of plugin bundled scripts
+        if script_info.get("_source") == "plugin":
+            return make_error_result(f"Cannot delete plugin bundled script '{actual_name}'. Plugin scripts are read-only.")
+
+        # Delete the file from project scripts directory
+        script_path = os.path.join(_get_project_scripts_dir(), script_info.get("path", ""))
 
         if os.path.exists(script_path):
             os.remove(script_path)
             log_info(f"Deleted script file: {script_path}")
 
-        # Remove from registry
-        del registry["scripts"][actual_name]
+        # Remove from project registry only
+        project_registry = _load_project_registry()
+        if actual_name in project_registry.get("scripts", {}):
+            del project_registry["scripts"][actual_name]
 
-        if not _save_registry(registry):
+        if not _save_registry(project_registry):
             return make_error_result("Failed to update script registry")
 
         return make_success_result({
@@ -642,11 +757,13 @@ def get_script_functions(script_name: str) -> Dict[str, Any]:
     Returns function names, parameters, types, and docstrings without full implementation.
     This is much more token-efficient than get_script() for discovering available functions.
 
+    Searches both plugin bundled scripts and project user scripts.
+
     Args:
         script_name: Name of the script to analyze
 
     Returns:
-        {success, data: {script, category, path, functions: [...]}, error}
+        {success, data: {script, category, path, source, functions: [...]}, error}
 
     Each function entry contains:
         - name: Function name
@@ -670,7 +787,10 @@ def get_script_functions(script_name: str) -> Dict[str, Any]:
             return make_error_result(f"Script '{script_name}' not found")
 
         script_info = scripts[script_name]
-        script_path = script_info.get("path", "")
+
+        # Get the base directory for this script (plugin or project)
+        base_dir = script_info.get("_base_dir", _get_scripts_dir())
+        script_path = os.path.join(base_dir, script_info.get("path", ""))
 
         if not os.path.exists(script_path):
             return make_error_result(f"Script file not found: {script_path}")
@@ -757,6 +877,7 @@ def get_script_functions(script_name: str) -> Dict[str, Any]:
             "script": script_name,
             "category": script_info.get("category", "general"),
             "path": script_path,
+            "source": script_info.get("_source", "project"),
             "description": script_info.get("description", ""),
             "tags": script_info.get("tags", []),
             "functions": functions,
