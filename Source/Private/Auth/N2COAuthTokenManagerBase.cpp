@@ -16,14 +16,19 @@
 #include "TimerManager.h"
 #include "Async/TaskGraphInterfaces.h"
 
-// Windows BCrypt for SHA-256 (PKCE requirement)
+// Platform-specific SHA-256 for PKCE requirement
+#if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include <bcrypt.h>
 #include "Windows/HideWindowsPlatformTypes.h"
-
 #pragma comment(lib, "bcrypt.lib")
+#elif PLATFORM_MAC
+#include <CommonCrypto/CommonDigest.h>
+#elif PLATFORM_LINUX
+#include <openssl/sha.h>
+#endif
 
-// SHA-256 implementation for PKCE challenge generation using Windows BCrypt
+// SHA-256 implementation for PKCE challenge generation (cross-platform)
 namespace
 {
 	TArray<uint8> ComputeSHA256Base(const TArray<uint8>& Data)
@@ -31,6 +36,7 @@ namespace
 		TArray<uint8> Hash;
 		Hash.SetNumUninitialized(32);
 
+#if PLATFORM_WINDOWS
 		BCRYPT_ALG_HANDLE hAlg = nullptr;
 		NTSTATUS Status = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
 		if (BCRYPT_SUCCESS(Status))
@@ -45,6 +51,11 @@ namespace
 			}
 			BCryptCloseAlgorithmProvider(hAlg, 0);
 		}
+#elif PLATFORM_MAC
+		CC_SHA256(Data.GetData(), static_cast<CC_LONG>(Data.Num()), Hash.GetData());
+#elif PLATFORM_LINUX
+		SHA256(Data.GetData(), Data.Num(), Hash.GetData());
+#endif
 
 		return Hash;
 	}
