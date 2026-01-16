@@ -6,16 +6,85 @@ Model Context Protocol server implementation for exposing Blueprint functionalit
 
 For creating new MCP tools, see: `@Source/Private/MCP/Tools/AGENTS.md`
 
+## Directory Structure
+
+```
+Source/
+├── Public/MCP/                           # Public headers
+│   ├── Server/                           # HTTP/SSE server components
+│   │   ├── N2CMcpHttpServerManager.h     # Main HTTP server
+│   │   ├── N2CMcpHttpRequestHandler.h    # Request handling
+│   │   ├── N2CMcpJsonRpcTypes.h          # JSON-RPC types
+│   │   ├── N2CMcpSSEResponseManager.h    # SSE response management
+│   │   └── IN2CMcpNotificationChannel.h  # Notification interface
+│   ├── Async/                            # Async execution system
+│   │   ├── IN2CToolAsyncTask.h           # Async task interface
+│   │   ├── N2CToolAsyncTaskBase.h        # Base async task class
+│   │   └── N2CToolAsyncTaskManager.h     # Task lifecycle management
+│   ├── Tools/                            # Tool framework
+│   │   ├── IN2CMcpTool.h                 # Tool interface
+│   │   ├── N2CMcpToolBase.h              # Tool base class
+│   │   ├── N2CMcpToolTypes.h             # Tool definitions
+│   │   ├── N2CMcpToolManager.h           # Tool execution
+│   │   └── N2CMcpToolRegistry.h          # Auto-registration
+│   ├── Resources/                        # Resource system
+│   │   ├── N2CMcpResourceTypes.h         # Resource definitions
+│   │   ├── N2CMcpResourceManager.h       # Resource registry
+│   │   └── Implementations/              # Resource implementations
+│   ├── Prompts/                          # Prompt system
+│   │   ├── N2CMcpPromptTypes.h           # Prompt definitions
+│   │   ├── N2CMcpPromptManager.h         # Prompt registry
+│   │   └── Implementations/              # Prompt implementations
+│   ├── Validation/                       # Request validation
+│   │   └── N2CMcpRequestValidator.h      # Validators
+│   └── Progress/                         # Progress tracking
+│       └── N2CMcpProgressTracker.h       # Progress notifications
+│
+└── Private/MCP/                          # Private implementations
+    ├── Server/                           # Server implementations
+    │   ├── N2CMcpHttpServerManager.cpp
+    │   ├── N2CMcpHttpRequestHandler.cpp
+    │   ├── N2CMcpJsonRpcTypes.cpp
+    │   ├── N2CMcpSSEResponseManager.cpp
+    │   ├── N2CSseServer.h/.cpp           # SSE server (httplib-based)
+    │   └── ...
+    ├── Async/                            # Async implementations
+    │   ├── N2CToolAsyncTaskBase.cpp
+    │   └── N2CToolAsyncTaskManager.cpp
+    ├── Tools/                            # Tool framework and implementations
+    │   ├── N2CMcpToolBase.cpp
+    │   ├── N2CMcpToolTypes.cpp
+    │   ├── N2CMcpToolManager.cpp
+    │   ├── N2CMcpToolRegistry.cpp
+    │   ├── N2CMcpFunctionGuidUtils.h/.cpp
+    │   └── Implementations/              # Tool implementations (see below)
+    ├── Utils/                            # Utility classes
+    │   ├── N2CMcpArgumentParser.h/.cpp
+    │   ├── N2CMcpBlueprintUtils.h/.cpp
+    │   ├── N2CMcpComponentUtils.h/.cpp
+    │   ├── N2CMcpContentBrowserUtils.h/.cpp
+    │   ├── N2CMcpFunctionPinUtils.h/.cpp
+    │   ├── N2CMcpTagUtils.h/.cpp
+    │   ├── N2CMcpTypeResolver.h/.cpp
+    │   └── N2CMcpVariableUtils.h/.cpp
+    ├── Python/                           # Python bridge
+    │   └── N2CPythonBridge.h/.cpp
+    ├── Resources/Implementations/        # Resource implementations
+    ├── Prompts/Implementations/          # Prompt implementations
+    └── Validation/                       # Validation implementations
+```
+
 ## MCP Server Architecture
 
 The MCP server is built on HTTP transport with full JSON-RPC 2.0 compliance:
 
 *   **Transport Layer**: HTTP server on port 27000 (configurable via settings)
+*   **SSE Transport**: Separate SSE server for streaming responses (port 27001)
 *   **Protocol**: JSON-RPC 2.0 with proper error handling and batch support
 *   **Lifecycle**: Auto-starts with plugin, graceful shutdown on exit
 *   **Session Management**: Protocol version negotiation and session tracking
 
-## Core Server Components (`Source/MCP/Server/`)
+## Core Server Components (`Source/Public/MCP/Server/`)
 
 *   **`N2CMcpHttpServerManager.h/.cpp`**: Central server management
     *   Singleton pattern for server lifecycle control
@@ -38,11 +107,51 @@ The MCP server is built on HTTP transport with full JSON-RPC 2.0 compliance:
     *   Message type detection and validation
 
 *   **`IN2CMcpNotificationChannel.h`**: Notification transport abstraction
-    *   Interface for future WebSocket/SSE support
+    *   Interface for WebSocket/SSE support
     *   Enables server-initiated notifications
     *   Session-based channel management
 
-## Validation Framework (`Source/MCP/Validation/`)
+*   **`N2CMcpSSEResponseManager.h/.cpp`**: SSE connection management
+    *   Manages Server-Sent Events responses for long-running tools
+    *   `FSSEConnection` struct with Request, Response, SessionId, ProgressToken, TaskId
+    *   `CreateSSEConnectionAndGetResponse()` for initiating SSE streams
+    *   `SendProgressNotification()`, `SendFinalResponse()` for streaming
+    *   Connection lookup by TaskId or ProgressToken
+    *   5-minute connection timeout with cleanup
+
+*   **`N2CSseServer.h/.cpp`** (Private): SSE server implementation
+    *   Uses httplib for standalone SSE HTTP server
+    *   `StartSseServer()`, `StopSseServer()`, `IsSseServerRunning()`
+    *   `PrepareSseStreamForTask()`, `CleanupStreamForCompletedTask()`
+    *   `PushFormattedSseEventToClient()`, `SignalSseClientCompletion()`
+    *   `FormatSseMessage()` for SSE event formatting
+    *   `PushNotificationToAllClients()` for broadcast notifications
+
+## Async Execution System (`Source/Public/MCP/Async/`)
+
+Supports long-running tool operations with progress streaming:
+
+*   **`IN2CToolAsyncTask.h`**: Async task interface
+    *   `Execute()` - Main execution method
+    *   `Cancel()` - Request cancellation
+    *   `IsCancelled()` - Check cancellation state
+    *   `GetTaskId()`, `GetProgressToken()`, `GetToolName()`
+
+*   **`N2CToolAsyncTaskBase.h/.cpp`**: Base class for async tasks
+    *   `ReportProgress(float Progress, const FString& Message)` - Progress updates
+    *   `ReportComplete(const FMcpToolCallResult& Result)` - Task completion
+    *   `CheckCancellationAndReport()` - Cancellation check with auto-reporting
+    *   Automatic SSE event streaming via FN2CMcpSSEResponseManager
+
+*   **`N2CToolAsyncTaskManager.h/.cpp`**: Task lifecycle management
+    *   Singleton for managing all async tasks
+    *   `LaunchTask()` - Start async execution
+    *   `CancelTask()`, `CancelTaskByProgressToken()` - Cancellation
+    *   `GetTaskContext()`, `IsTaskRunning()`, `GetRunningTaskIds()`
+    *   `CleanupCompletedTasks()`, `CancelAllTasks()`
+    *   Thread-safe with FCriticalSection
+
+## Validation Framework (`Source/Public/MCP/Validation/`)
 
 *   **`N2CMcpRequestValidator.h/.cpp`**: Centralized request validation
     *   Method-specific validators (tools/call, resources/read, etc.)
@@ -50,7 +159,7 @@ The MCP server is built on HTTP transport with full JSON-RPC 2.0 compliance:
     *   Required/optional field validation
     *   Type checking with detailed error messages
 
-## Progress Tracking System (`Source/MCP/Progress/`)
+## Progress Tracking System (`Source/Public/MCP/Progress/`)
 
 *   **`N2CMcpProgressTracker.h/.cpp`**: Real-time operation tracking
     *   Thread-safe progress management
@@ -58,108 +167,223 @@ The MCP server is built on HTTP transport with full JSON-RPC 2.0 compliance:
     *   Percentage-based progress reporting
     *   Integration with notification broadcasting
 
-## Tool Subsystem (`Source/MCP/Tools/`)
+## Tool Subsystem (`Source/Private/MCP/Tools/`)
 
 The tool system provides a scalable framework for exposing Blueprint operations:
 
-*   **Core Infrastructure**:
-    *   `IN2CMcpTool.h`: Tool interface contract
-    *   `N2CMcpToolBase.h/.cpp`: Base class with common functionality
-    *   `N2CMcpToolTypes.h/.cpp`: Tool definition and result structures
-    *   `N2CMcpToolManager.h/.cpp`: Thread-safe tool registry
-    *   `N2CMcpToolRegistry.h/.cpp`: Automatic registration system
+### Core Infrastructure
 
-*   **Tool Registration**:
-    *   `REGISTER_MCP_TOOL` macro for static initialization
-    *   Self-contained tools auto-register on plugin load
-    *   Game Thread execution support with timeouts
-    *   Input schema validation framework
+*   `IN2CMcpTool.h`: Tool interface contract
+*   `N2CMcpToolBase.h/.cpp`: Base class with common functionality
+*   `N2CMcpToolTypes.h/.cpp`: Tool definition and result structures
+*   `N2CMcpToolManager.h/.cpp`: Thread-safe tool registry
+*   `N2CMcpToolRegistry.h/.cpp`: Automatic registration system
 
-*   **Tool Organization** (`Implementations/`):
-    *   **Blueprint/** - Blueprint-related tools
-        *   **Analysis/** - Blueprint inspection (get-focused-blueprint, list-blueprint-functions, list-overridable-functions)
-        *   **Functions/** - Function management (create/open/delete-blueprint-function)
-        *   **Variables/** - Variable creation (create-variable, create-local-variable, search-variable-types)
-        *   **Graph/** - Node operations (search-blueprint-nodes, add-bp-node-to-active-graph, connect-pins)
-        *   **Organization/** - Tagging system (tag-blueprint-graph, list-blueprint-tags, remove-tag-from-graph)
-    *   **Translation/** - Code translation tools (translate-focused-blueprint, get-available-translation-targets, get-available-llm-providers, get-translation-output-directory)
-    *   **FileSystem/** - File operations (read-path, read-file)
-    *   **ContentBrowser/** - Content browser operations (open-content-browser-path, read-content-browser-path)
-    *   **Python/** - Python script management tools
-        *   `run-python` - Execute Python code in UE environment
-        *   `list-python-scripts` - List scripts by category
-        *   `search-python-scripts` - Search by name/description/tags
-        *   `get-python-script` - Get full script code and metadata
-        *   `get-script-functions` - Get function signatures via AST (token-efficient)
-        *   `save-python-script` - Save script to library
-        *   `delete-python-script` - Remove script from library
+### Tool Registration
 
-## Resource System (`Source/MCP/Resources/`)
+*   `REGISTER_MCP_TOOL` macro for static initialization
+*   Self-contained tools auto-register on plugin load
+*   Game Thread execution support with timeouts
+*   Input schema validation framework
+
+### Tool Implementations (`Implementations/`)
+
+**Blueprint/Analysis/** - Blueprint inspection tools:
+*   `get-focused-blueprint` - Get currently focused Blueprint
+*   `list-blueprint-functions` - List functions in a Blueprint
+*   `list-overridable-functions` - List parent class overridable functions
+*   `get-open-blueprint-editors` - Get all open Blueprint editors
+
+**Blueprint/Functions/** - Function management:
+*   `create-blueprint-function` - Create a new function
+*   `open-blueprint-function` - Open/focus a function graph
+*   `delete-blueprint-function` - Delete a function
+*   `add-function-return-pin` - Add return pin to function
+*   `remove-function-return-pin` - Remove function return pin
+*   `add-function-entry-pin` - Add input parameter to function
+*   `remove-function-entry-pin` - Remove function input parameter
+
+**Blueprint/Variables/** - Variable management:
+*   `create-variable` - Create member variable
+*   `create-local-variable` - Create local function variable
+*   `search-variable-types` - Search for variable types
+*   `get-blueprint-member-variables` - List Blueprint member variables
+*   `create-set-member-variable-node` - Create setter node for member var
+*   `create-get-member-variable-node` - Create getter node for member var
+*   `set-member-variable-default-value` - Set member variable default
+*   `get-blueprint-function-local-variables` - List function local variables
+*   `create-set-local-function-variable-node` - Create setter for local var
+*   `create-get-local-function-variable-node` - Create getter for local var
+*   `set-local-function-variable-default-value` - Set local variable default
+
+**Blueprint/Graph/** - Node and graph operations:
+*   `search-blueprint-nodes` - Search available node types
+*   `add-bp-node-to-active-graph` - Add a node to the graph
+*   `connect-pins` - Connect two pins
+*   `set-input-pin-value` - Set literal value on input pin
+*   `delete-blueprint-node` - Delete a node from graph
+*   `create-comment-node` - Create a comment box
+*   `find-nodes-in-graph` - Find nodes in current graph
+
+**Blueprint/Organization/** - Tagging and organization:
+*   `tag-blueprint-graph` - Apply tag to a graph
+*   `list-blueprint-tags` - List all tags
+*   `remove-tag-from-graph` - Remove tag from graph
+
+**Blueprint/Compilation/** - Build operations:
+*   `save-blueprint` - Save Blueprint asset
+*   `compile-blueprint` - Compile Blueprint
+
+**Blueprint/Classes/** - Class management:
+*   `search-blueprint-classes` - Search for Blueprint parent classes
+*   `create-blueprint-class` - Create new Blueprint class
+
+**Blueprint/Components/** - Component management:
+*   `list-components-in-actor` - List components in an Actor Blueprint
+*   `add-component-class-to-actor` - Add component to Actor
+*   `delete-component-in-actor` - Remove component from Actor
+
+**Translation/** - Code translation tools:
+*   `translate-focused-blueprint` - Translate Blueprint to code (async, long-running)
+*   `get-available-translation-targets` - List target languages
+*   `get-available-llm-providers` - List LLM providers
+*   `get-translation-output-directory` - Get output directory path
+
+**FileSystem/** - File operations:
+*   `read-path` - List directory contents
+*   `read-file` - Read file contents
+
+**ContentBrowser/** - Content browser operations:
+*   `open-content-browser-path` - Navigate to path
+*   `read-content-browser-path` - List assets at path
+*   `open-blueprint-asset` - Open Blueprint by path
+*   `search-content-browser` - Search for assets
+*   `create-folder` - Create new folder
+*   `move-asset` - Move asset to new location
+*   `copy-asset` - Copy asset
+*   `rename-asset` - Rename asset
+*   `move-folder` - Move folder
+*   `rename-folder` - Rename folder
+
+**Python/** - Python script management:
+*   `run-python` - Execute Python code in UE environment
+*   `list-python-scripts` - List scripts by category
+*   `search-python-scripts` - Search by name/description/tags
+*   `get-python-script` - Get full script code and metadata
+*   `get-script-functions` - Get function signatures via AST (token-efficient)
+*   `save-python-script` - Save script to library
+*   `delete-python-script` - Remove script from library
+
+**ToolManagement/** - Dynamic tool management:
+*   `assess-needed-tools` - Request activation of tool categories (for dynamic discovery mode)
+
+## MCP Utility Classes (`Source/Private/MCP/Utils/`)
+
+Common utilities shared across MCP tools:
+
+*   **`N2CMcpArgumentParser`**: JSON argument parsing helpers
+*   **`N2CMcpBlueprintUtils`**: Blueprint manipulation utilities
+*   **`N2CMcpComponentUtils`**: Actor component utilities
+*   **`N2CMcpContentBrowserUtils`**: Content browser operations
+*   **`N2CMcpFunctionPinUtils`**: Function pin manipulation
+*   **`N2CMcpTagUtils`**: Graph tagging utilities
+*   **`N2CMcpTypeResolver`**: UE type resolution (class/struct lookups)
+*   **`N2CMcpVariableUtils`**: Variable creation and manipulation
+
+## Resource System (`Source/Public/MCP/Resources/`)
 
 Resources expose Blueprint data in a structured, queryable format:
 
-*   **Core Infrastructure**:
-    *   `N2CMcpResourceTypes.h/.cpp`: Resource definitions and contents
-    *   `N2CMcpResourceManager.h/.cpp`: Resource registry with subscription support
-    *   `IN2CMcpResource.h`: Resource interface for implementations
+### Core Infrastructure
 
-*   **Resource Types**:
-    *   Static resources: Fixed URIs with direct handlers
-    *   Dynamic resources: Template-based URI patterns
-    *   Subscription support for real-time updates
+*   `N2CMcpResourceTypes.h/.cpp`: Resource definitions and contents
+*   `N2CMcpResourceManager.h/.cpp`: Resource registry with subscription support
+*   `IN2CMcpResource.h`: Resource interface for implementations
 
-*   **Implemented Resources** (`Implementations/`):
-    *   `N2CMcpBlueprintResource.h/.cpp`:
-        *   `nodetocode://blueprint/current`: Current focused Blueprint
-        *   `nodetocode://blueprints/all`: List of open Blueprints
-        *   `nodetocode://blueprint/{name}`: Blueprint by name (template)
+### Resource Types
 
-## Prompt System (`Source/MCP/Prompts/`)
+*   Static resources: Fixed URIs with direct handlers
+*   Dynamic resources: Template-based URI patterns
+*   Subscription support for real-time updates
+
+### Implemented Resources (`Implementations/`)
+
+*   `N2CMcpBlueprintResource.h/.cpp`:
+    *   `nodetocode://blueprint/current`: Current focused Blueprint
+    *   `nodetocode://blueprints/all`: List of open Blueprints
+    *   `nodetocode://blueprint/{name}`: Blueprint by name (template)
+
+## Prompt System (`Source/Public/MCP/Prompts/`)
 
 Prompts provide guided interactions for common Blueprint tasks:
 
-*   **Core Infrastructure**:
-    *   `N2CMcpPromptTypes.h`: Prompt structures with type alias for arguments
-    *   `N2CMcpPromptManager.h/.cpp`: Prompt registry and execution
-    *   `IN2CMcpPrompt.h`: Interface for prompt implementations
+### Core Infrastructure
 
-*   **Type Safety**:
-    *   `FMcpPromptArguments` type alias for `TMap<FString, FString>`
-    *   Avoids macro expansion issues with template parameters
-    *   Consistent argument passing across the system
+*   `N2CMcpPromptTypes.h`: Prompt structures with type alias for arguments
+*   `N2CMcpPromptManager.h/.cpp`: Prompt registry and execution
+*   `IN2CMcpPrompt.h`: Interface for prompt implementations
 
-*   **Implemented Prompts** (`Implementations/`):
-    *   `N2CMcpCodeGenerationPrompt`: Generate code with language/style options
-    *   `N2CMcpBlueprintAnalysisPrompt`: Analyze Blueprint structure
-    *   `N2CMcpRefactorPrompt`: Suggest refactoring improvements
-    *   `N2CMcpPythonScriptingPrompt`: UE Python scripting with Context7 + script reuse enforcement
+### Type Safety
+
+*   `FMcpPromptArguments` type alias for `TMap<FString, FString>`
+*   Avoids macro expansion issues with template parameters
+*   Consistent argument passing across the system
+
+### Implemented Prompts (`Implementations/`)
+
+*   `N2CMcpCodeGenerationPrompt`: Generate code with language/style options
 
 ## MCP Protocol Implementation
 
 The server implements these MCP methods:
 
-*   **Core Methods**:
-    *   `initialize`: Connection setup with capability negotiation
-    *   `notifications/initialized`: Connection confirmation
-    *   `ping`: Keep-alive testing
+### Core Methods
+*   `initialize`: Connection setup with capability negotiation
+*   `notifications/initialized`: Connection confirmation
+*   `ping`: Keep-alive testing
 
-*   **Tool Methods**:
-    *   `tools/list`: Enumerate available tools with schemas
-    *   `tools/call`: Execute tools with arguments
+### Tool Methods
+*   `tools/list`: Enumerate available tools with schemas
+*   `tools/call`: Execute tools with arguments
 
-*   **Resource Methods**:
-    *   `resources/list`: List available resources and templates
-    *   `resources/read`: Read resource contents
+### Resource Methods
+*   `resources/list`: List available resources and templates
+*   `resources/read`: Read resource contents
 
-*   **Prompt Methods**:
-    *   `prompts/list`: List available prompts
-    *   `prompts/get`: Get prompt with argument substitution
+### Prompt Methods
+*   `prompts/list`: List available prompts
+*   `prompts/get`: Get prompt with argument substitution
 
-*   **Advanced Features**:
-    *   Batch request processing
-    *   Progress notifications
-    *   Protocol version negotiation
-    *   Session management
+### Advanced Features
+*   Batch request processing
+*   Progress notifications via SSE
+*   Protocol version negotiation
+*   Session management
+*   Task cancellation (`nodetocode/cancelTask`)
+
+## Dynamic Tool Management
+
+The MCP server supports dynamic tool discovery (configurable in plugin settings):
+
+*   **Disabled (Default)**: All tools registered at startup
+*   **Enabled**: Only `assess-needed-tools` initially available
+*   Use `assess-needed-tools` with category names to activate tool sets
+*   Server sends `notifications/tools/list_changed` after activation
+
+Available tool categories for `assess-needed-tools`:
+*   Tool Management
+*   Blueprint Discovery
+*   Blueprint Graph Editing
+*   Blueprint Function Management
+*   Blueprint Variable Management
+*   Blueprint Organization
+*   Blueprint Compilation
+*   Blueprint Class Management
+*   Blueprint Component Management
+*   Content Browser
+*   File System
+*   Translation
+*   Python Scripting
 
 ## Editor Integration Updates
 
@@ -172,7 +396,9 @@ The server implements these MCP methods:
         *   `SerializeN2CBlueprintToJson()`: Serialization
 
 *   **Plugin Settings** (`N2CSettings.h/.cpp`):
-    *   `McpServerPort`: Configurable server port
+    *   `McpServerPort`: Configurable server port (default 27000)
+    *   `SseServerPort`: SSE server port (default 27001)
+    *   `bEnableDynamicToolDiscovery`: Toggle dynamic tool management
     *   Exposed in Editor UI for runtime configuration
 
 ## Testing and Development
@@ -217,6 +443,16 @@ curl -X POST http://localhost:27000/mcp \
 curl -X POST http://localhost:27000/mcp \
   -H "Content-Type: application/json" \
   -d '[{"jsonrpc": "2.0", "method": "ping", "id": 1}, {"jsonrpc": "2.0", "method": "tools/list", "id": 2}]'
+
+# Long-running tool with progress (requires SSE)
+curl -X POST http://localhost:27000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "translate-focused-blueprint", "arguments": {"language": "cpp"}, "_meta": {"progressToken": "unique-token-123"}}, "id": 7}'
+
+# Cancel a running task
+curl -X POST http://localhost:27000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "nodetocode/cancelTask", "params": {"progressToken": "unique-token-123"}, "id": 8}'
 ```
 
 ## Related Projects

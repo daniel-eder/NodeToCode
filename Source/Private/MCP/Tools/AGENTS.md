@@ -17,7 +17,9 @@ MCP/Tools/
 │   ├── Blueprint/              - Blueprint manipulation tools
 │   ├── Translation/            - Code translation tools
 │   ├── FileSystem/             - File and directory operations
-│   └── ContentBrowser/         - Content browser navigation
+│   ├── ContentBrowser/         - Content browser navigation
+│   ├── Python/                 - Python script management
+│   └── ToolManagement/         - Dynamic tool management
 │
 └── README.md                   - This documentation
 ```
@@ -70,6 +72,9 @@ Tools are organized into logical categories:
   - Graph - Node and connection manipulation
   - Organization - Tagging and tracking system
   - Discovery - Searching for nodes, functions, and variable types
+  - Compilation - Save and compile Blueprints
+  - Classes - Blueprint class search and creation
+  - Components - Actor component management
 
 - **[Translation/](Implementations/Translation/)** - Code generation tools
   - LLM provider management
@@ -85,6 +90,11 @@ Tools are organized into logical categories:
   - Path navigation and folder creation
   - Asset discovery and filtering
   - Blueprint opening and focusing
+
+- **[Python/](Implementations/Python/)** - Python script management
+  - Script execution in UE environment
+  - Script library CRUD operations
+  - Token-efficient function discovery via AST
 
 Each category has its own README with detailed documentation.
 
@@ -290,9 +300,13 @@ When using dynamic tool discovery with `assess-needed-tools`, these categories a
 - **Blueprint Function Management**: Tools for creating, deleting, and opening Blueprint functions
 - **Blueprint Variable Management**: Tools for creating member and local variables in Blueprints
 - **Blueprint Organization**: Tools for applying and managing tags on Blueprint graphs
+- **Blueprint Compilation**: Tools for saving and compiling Blueprints
+- **Blueprint Class Management**: Tools for searching and creating Blueprint classes
+- **Blueprint Component Management**: Tools for managing components in Actor Blueprints
 - **Content Browser**: Tools for interacting with the Unreal Engine Content Browser
 - **File System**: Tools for reading files and directories from the project's file system
 - **Translation**: Tools for translating Blueprints to code and managing LLM providers
+- **Python Scripting**: Tools for executing and managing Python scripts
 
 ### Example Workflow
 
@@ -340,9 +354,14 @@ Create a new header file in the appropriate subdirectory under `Source/Private/M
 - `Blueprint/Variables/` - For variable creation tools
 - `Blueprint/Graph/` - For node and graph manipulation
 - `Blueprint/Organization/` - For tagging and organizing
+- `Blueprint/Compilation/` - For save and compile tools
+- `Blueprint/Classes/` - For Blueprint class tools
+- `Blueprint/Components/` - For component management tools
 - `Translation/` - For code translation tools
 - `FileSystem/` - For file operations
 - `ContentBrowser/` - For content browser operations
+- `Python/` - For Python script tools
+- `ToolManagement/` - For dynamic tool discovery
 
 ```cpp
 // N2CMcpYourToolName.h
