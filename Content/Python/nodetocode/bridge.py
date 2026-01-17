@@ -210,23 +210,24 @@ def get_active_provider() -> Dict[str, Any]:
 
 # ============== Blueprint Editor Navigation ==============
 
-def open_blueprint(blueprint_path: str, focus_graph: Optional[str] = None) -> Dict[str, Any]:
+def open_blueprint(blueprint_path: str, focus_graph: str = "EventGraph") -> Dict[str, Any]:
     """
-    Open a Blueprint asset in the editor.
+    Open a Blueprint asset in the editor and focus on a specific graph.
+
+    IMPORTANT: A graph must be focused for other functions like get_focused_blueprint(),
+    add_node_to_graph(), etc. to work. Defaults to "EventGraph" if not specified.
 
     Args:
         blueprint_path: Asset path of the Blueprint (e.g., "/Game/Blueprints/BP_MyActor")
-        focus_graph: Optional graph name to focus (e.g., "EventGraph", "ConstructionScript", or function name)
+        focus_graph: Graph name to focus. Defaults to "EventGraph". Can also be
+                     "ConstructionScript" or any function name in the Blueprint.
 
     Returns:
         {success, data: {blueprintName, blueprintPath, focusedGraph, eventGraphCount, functionCount}, error}
 
     Example:
-        # Open a Blueprint
+        # Open a Blueprint (focuses EventGraph by default)
         result = open_blueprint("/Game/Blueprints/BP_Player")
-
-        # Open and focus on the EventGraph
-        result = open_blueprint("/Game/Blueprints/BP_Player", "EventGraph")
 
         # Open and focus on a specific function
         result = open_blueprint("/Game/Blueprints/BP_Player", "HandleInput")
@@ -237,7 +238,7 @@ def open_blueprint(blueprint_path: str, focus_graph: Optional[str] = None) -> Di
     try:
         result = unreal.N2CPythonBridge.open_blueprint(
             blueprint_path.strip(),
-            (focus_graph or "").strip()
+            (focus_graph or "EventGraph").strip()
         )
         return _parse_bridge_result(result)
     except Exception as e:
