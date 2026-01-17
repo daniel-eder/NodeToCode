@@ -4,6 +4,11 @@ DataTable population utilities for Unreal Engine.
 Populate DataTables from various data sources programmatically.
 Supports JSON and CSV input formats.
 
+IMPORTANT: The DataTable must already exist with a row struct that has columns
+matching the CSV/JSON data. Column names in the data must match the struct's
+property names. To create a new DataTable with a custom struct, use:
+    from scripts.data.struct_creator import create_datatable_row_struct
+
 Usage:
     from scripts.data.datatable_populator import populate_from_json, get_datatable_info
 
@@ -13,6 +18,10 @@ Usage:
 
     # Get info about a DataTable
     info = get_datatable_info('/Game/DT_Items')
+
+    # Export DataTable to CSV
+    result = export_to_csv('/Game/DT_Items')
+    csv_string = result['data']['csv_string']
 
 Functions return standardized dicts: {success: bool, data: {...}, error: str|None}
 """
@@ -176,13 +185,12 @@ def get_datatable_info(datatable_path: str) -> Dict[str, Any]:
         # Get row names
         row_names = datatable.get_row_names()
 
-        # Get struct info if available
+        # Get struct info using the correct method
         row_struct_name = ""
         try:
-            if hasattr(datatable, 'row_struct'):
-                row_struct = datatable.row_struct
-                if row_struct:
-                    row_struct_name = str(row_struct.get_name())
+            row_struct = datatable.get_row_struct()
+            if row_struct:
+                row_struct_name = str(row_struct.get_name())
         except:
             pass
 
@@ -222,8 +230,7 @@ def export_to_json(datatable_path: str) -> Dict[str, Any]:
             return _make_error(f"Asset is not a DataTable: {datatable_path}")
 
         # Export to JSON using the built-in function
-        # Note: This returns the JSON as a string
-        json_string = datatable.get_table_as_json_string()
+        json_string = datatable.export_to_json_string()
 
         return _make_success({
             "datatable_path": datatable_path,
@@ -259,7 +266,7 @@ def export_to_csv(datatable_path: str) -> Dict[str, Any]:
             return _make_error(f"Asset is not a DataTable: {datatable_path}")
 
         # Export to CSV
-        csv_string = datatable.get_table_as_csv_string()
+        csv_string = datatable.export_to_csv_string()
 
         return _make_success({
             "datatable_path": datatable_path,

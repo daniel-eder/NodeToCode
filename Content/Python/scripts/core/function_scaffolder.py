@@ -305,11 +305,15 @@ def list_functions(blueprint_path: str) -> Dict[str, Any]:
     """
     List all functions in a Blueprint.
 
+    NOTE: In UE5, the FunctionGraphs property is protected and not accessible
+    via Python. This function returns limited information by checking for common
+    function names. Use find_function() to check for specific function names.
+
     Args:
         blueprint_path: Path to the Blueprint
 
     Returns:
-        {success, data: {functions: [...], count: int}, error}
+        {success, data: {functions: [...], count: int, limited: bool}, error}
     """
     if not blueprint_path:
         return _make_error("Blueprint path cannot be empty")
@@ -322,21 +326,30 @@ def list_functions(blueprint_path: str) -> Dict[str, Any]:
         if blueprint is None:
             return _make_error(f"Failed to load Blueprint: {blueprint_path}")
 
-        # Get function graphs from the Blueprint
         functions = []
 
-        # Access function graphs if available
-        if hasattr(blueprint, 'function_graphs'):
-            for graph in blueprint.function_graphs:
+        # UE5 Python API doesn't expose FunctionGraphs property
+        # Check for common Blueprint function names as a workaround
+        common_function_names = [
+            "BeginPlay", "Tick", "EndPlay",
+            "ReceiveBeginPlay", "ReceiveTick", "ReceiveEndPlay",
+            "OnConstruction", "UserConstructionScript",
+        ]
+
+        for func_name in common_function_names:
+            graph = unreal.BlueprintEditorLibrary.find_graph(blueprint, func_name)
+            if graph:
                 functions.append({
-                    "name": str(graph.get_name()),
+                    "name": func_name,
                     "type": "function"
                 })
 
         return _make_success({
             "functions": functions,
             "count": len(functions),
-            "blueprint_path": blueprint_path
+            "blueprint_path": blueprint_path,
+            "limited": True,
+            "note": "UE5 Python API does not expose FunctionGraphs. Use find_function() to check specific names."
         })
 
     except Exception as e:

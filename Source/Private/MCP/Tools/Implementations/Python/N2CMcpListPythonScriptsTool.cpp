@@ -13,7 +13,8 @@ FMcpToolDefinition FN2CMcpListPythonScriptsTool::GetDefinition() const
 		TEXT("list-python-scripts"),
 		TEXT("List available Python scripts from the script library. "
 			 "Returns script names with metadata (description, tags, usage count). "
-			 "Use this to discover existing scripts before writing new ones."),
+			 "Use alongside search-python-scripts to discover reusable scripts before writing new code (DRY principle). "
+			 "Browse by category to find related utilities that can be imported and composed."),
 		TEXT("Python")
 	);
 
@@ -24,8 +25,8 @@ FMcpToolDefinition FN2CMcpListPythonScriptsTool::GetDefinition() const
 	TSharedPtr<FJsonObject> CategoryProp = MakeShareable(new FJsonObject);
 	CategoryProp->SetStringField(TEXT("type"), TEXT("string"));
 	CategoryProp->SetStringField(TEXT("description"),
-		TEXT("Filter scripts by category (e.g., 'gameplay', 'ui', 'utilities'). "
-			 "Leave empty for all categories."));
+		TEXT("Filter scripts by category (e.g., 'gameplay', 'ui', 'utilities', 'animation'). "
+			 "Leave empty for all categories. Categories organize scripts for easier discovery and import."));
 	Properties->SetObjectField(TEXT("category"), CategoryProp);
 
 	// limit property - optional number

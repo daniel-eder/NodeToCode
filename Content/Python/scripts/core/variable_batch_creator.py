@@ -100,7 +100,7 @@ def add_variables_to_blueprint(
                 })
                 continue
 
-            # Create the pin type
+            # Create the pin type using import_text (UE5 compatible)
             pin_type_result = _create_pin_type(var_type, container, map_key_type)
             if not pin_type_result["success"]:
                 failed.append({
@@ -284,6 +284,8 @@ def _create_pin_type(
     """
     Create an EdGraphPinType from a type identifier string.
 
+    Uses import_text() for UE5 compatibility instead of set_editor_property().
+
     Args:
         type_identifier: Type name or path
         container_type: 'none', 'array', 'set', or 'map'
@@ -293,9 +295,6 @@ def _create_pin_type(
         {success, data: EdGraphPinType, error}
     """
     try:
-        # Create base pin type
-        pin_type = unreal.EdGraphPinType()
-
         # Resolve type to pin category and subcategory
         type_info = _resolve_type(type_identifier)
         if not type_info["success"]:
@@ -303,33 +302,33 @@ def _create_pin_type(
 
         category = type_info["data"]["category"]
         subcategory = type_info["data"].get("subcategory", "")
-        subcategory_object = type_info["data"].get("subcategory_object")
+        subcategory_object_path = type_info["data"].get("subcategory_object_path", "")
 
-        # Set pin category
-        pin_type.set_editor_property('pin_category', category)
+        # Build the import text string
+        # Format: (PinCategory="category",PinSubCategory="subcategory",PinSubCategoryObject=path,ContainerType=type)
+        parts = [f'PinCategory="{category}"']
 
-        # Set subcategory if present
         if subcategory:
-            pin_type.set_editor_property('pin_sub_category', subcategory)
+            parts.append(f'PinSubCategory="{subcategory}"')
 
-        # Set subcategory object if present (for objects/structs)
-        if subcategory_object:
-            pin_type.set_editor_property('pin_sub_category_object', subcategory_object)
+        if subcategory_object_path:
+            parts.append(f'PinSubCategoryObject={subcategory_object_path}')
 
-        # Set container type
-        container_enum = _get_container_enum(container_type)
-        pin_type.set_editor_property('container_type', container_enum)
+        # Handle container type
+        container_map = {
+            'none': 'None',
+            'array': 'Array',
+            'set': 'Set',
+            'map': 'Map'
+        }
+        container_value = container_map.get(container_type.lower(), 'None')
+        parts.append(f'ContainerType={container_value}')
 
-        # Handle map key type
-        if container_type == 'map' and map_key_type:
-            key_type_info = _resolve_type(map_key_type)
-            if key_type_info["success"]:
-                # Create a secondary pin type for the key
-                # Note: UE5 handles this through pin_value_type for maps
-                key_category = key_type_info["data"]["category"]
-                pin_type.set_editor_property('pin_value_type', unreal.EdGraphTerminalType())
-                # The terminal type needs its own settings - this is complex in Python
-                # For now, maps may have limited support
+        import_string = f"({','.join(parts)})"
+
+        # Create and import the pin type
+        pin_type = unreal.EdGraphPinType()
+        pin_type.import_text(import_string)
 
         return _make_success(pin_type)
 
@@ -345,36 +344,37 @@ def _resolve_type(type_identifier: str) -> Dict[str, Any]:
         type_identifier: Type name or full path
 
     Returns:
-        {success, data: {category, subcategory, subcategory_object}, error}
+        {success, data: {category, subcategory, subcategory_object_path}, error}
     """
     type_lower = type_identifier.lower().strip()
 
-    # Primitive type mappings
+    # Primitive type mappings - UE5 uses 'real' with 'double' subcategory for float
     primitives = {
-        'bool': 'bool',
-        'boolean': 'bool',
-        'byte': 'byte',
-        'uint8': 'byte',
-        'int': 'int',
-        'int32': 'int',
-        'integer': 'int',
-        'int64': 'int64',
-        'float': 'real',  # UE5 uses 'real' for float
-        'double': 'real',
-        'real': 'real',
-        'string': 'string',
-        'fstring': 'string',
-        'name': 'name',
-        'fname': 'name',
-        'text': 'text',
-        'ftext': 'text',
+        'bool': ('bool', ''),
+        'boolean': ('bool', ''),
+        'byte': ('byte', ''),
+        'uint8': ('byte', ''),
+        'int': ('int', ''),
+        'int32': ('int', ''),
+        'integer': ('int', ''),
+        'int64': ('int64', ''),
+        'float': ('real', 'double'),  # UE5 uses real/double for float
+        'double': ('real', 'double'),
+        'real': ('real', 'double'),
+        'string': ('string', ''),
+        'fstring': ('string', ''),
+        'name': ('name', ''),
+        'fname': ('name', ''),
+        'text': ('text', ''),
+        'ftext': ('text', ''),
     }
 
     if type_lower in primitives:
+        cat, subcat = primitives[type_lower]
         return _make_success({
-            "category": primitives[type_lower],
-            "subcategory": "",
-            "subcategory_object": None
+            "category": cat,
+            "subcategory": subcat,
+            "subcategory_object_path": ""
         })
 
     # Struct type mappings
@@ -406,15 +406,11 @@ def _resolve_type(type_identifier: str) -> Dict[str, Any]:
 
     if type_lower in structs:
         struct_path = structs[type_lower]
-        try:
-            struct_obj = unreal.load_object(None, struct_path)
-            return _make_success({
-                "category": "struct",
-                "subcategory": "",
-                "subcategory_object": struct_obj
-            })
-        except:
-            return _make_error(f"Failed to load struct: {struct_path}")
+        return _make_success({
+            "category": "struct",
+            "subcategory": "",
+            "subcategory_object_path": struct_path
+        })
 
     # Object type mappings
     objects = {
@@ -440,15 +436,11 @@ def _resolve_type(type_identifier: str) -> Dict[str, Any]:
 
     if type_lower in objects:
         class_path = objects[type_lower]
-        try:
-            class_obj = unreal.load_object(None, class_path)
-            return _make_success({
-                "category": "object",
-                "subcategory": "",
-                "subcategory_object": class_obj
-            })
-        except:
-            return _make_error(f"Failed to load class: {class_path}")
+        return _make_success({
+            "category": "object",
+            "subcategory": "",
+            "subcategory_object_path": class_path
+        })
 
     # Try loading as full path (object reference)
     if type_identifier.startswith('/'):
@@ -460,13 +452,13 @@ def _resolve_type(type_identifier: str) -> Dict[str, Any]:
                     return _make_success({
                         "category": "struct",
                         "subcategory": "",
-                        "subcategory_object": obj
+                        "subcategory_object_path": type_identifier
                     })
                 else:
                     return _make_success({
                         "category": "object",
                         "subcategory": "",
-                        "subcategory_object": obj
+                        "subcategory_object_path": type_identifier
                     })
         except:
             pass
@@ -476,22 +468,11 @@ def _resolve_type(type_identifier: str) -> Dict[str, Any]:
         return _make_success({
             "category": "class",
             "subcategory": "",
-            "subcategory_object": None
+            "subcategory_object_path": ""
         })
 
     # Fallback: assume it's an object type with unknown class
     return _make_error(f"Unknown type identifier: {type_identifier}")
-
-
-def _get_container_enum(container_type: str) -> unreal.EPinContainerType:
-    """Get the EPinContainerType enum value for a container type string."""
-    container_map = {
-        'none': unreal.EPinContainerType.NONE,
-        'array': unreal.EPinContainerType.ARRAY,
-        'set': unreal.EPinContainerType.SET,
-        'map': unreal.EPinContainerType.MAP,
-    }
-    return container_map.get(container_type.lower(), unreal.EPinContainerType.NONE)
 
 
 def _make_success(data: Any) -> Dict[str, Any]:

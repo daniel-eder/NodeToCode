@@ -11,9 +11,10 @@ FMcpToolDefinition FN2CMcpSavePythonScriptTool::GetDefinition() const
 {
 	FMcpToolDefinition Definition(
 		TEXT("save-python-script"),
-		TEXT("Save a new Python script to the script library for reuse. "
-			 "The script will be stored in the project's Content/Python/scripts/ directory. "
-			 "Add tags to make the script discoverable via search."),
+		TEXT("Save a Python script to the script library for reuse. "
+			 "Stored in Content/Python/scripts/<category>/ and importable as 'from scripts.<category>.<name> import func'. "
+			 "Write modular scripts with focused functions, clear docstrings, and parameterized inputs. "
+			 "Every saved script grows the reusable toolkit for future tasks."),
 		TEXT("Python")
 	);
 
@@ -33,7 +34,8 @@ FMcpToolDefinition FN2CMcpSavePythonScriptTool::GetDefinition() const
 	CodeProp->SetStringField(TEXT("type"), TEXT("string"));
 	CodeProp->SetStringField(TEXT("description"),
 		TEXT("The Python code to save. Should be valid Python that can run in "
-			 "Unreal Engine's Python environment."));
+			 "Unreal Engine's Python environment. Structure with reusable functions (def), "
+			 "docstrings, and parameters for flexibility. Avoid hardcoded values."));
 	Properties->SetObjectField(TEXT("code"), CodeProp);
 
 	// description property - required string

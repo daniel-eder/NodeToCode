@@ -428,17 +428,14 @@ void FN2CMcpHttpServerManager::RegisterMcpTools()
 	if (Settings && Settings->bEnablePythonScriptOnlyMode)
 	{
 		// Register only essential tools for Python script-only mode
+		// This mode focuses on Python scripting for UE automation - no translation tools
 		TArray<FString> EssentialTools = {
 			TEXT("run-python"),
-			TEXT("translate-focused-blueprint"),
-			TEXT("get-available-llm-providers"),
-			TEXT("get-available-translation-targets"),
-			TEXT("get-translation-output-directory"),
-			// Script management tools
+			// Script management tools for building a reusable script library
 			TEXT("list-python-scripts"),
 			TEXT("search-python-scripts"),
 			TEXT("get-python-script"),
-			TEXT("get-script-functions"),  // Token-efficient function signature discovery
+			TEXT("get-script-functions"),  // Token-efficient function signature discovery for composition
 			TEXT("save-python-script"),
 			TEXT("delete-python-script")
 		};

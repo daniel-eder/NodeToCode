@@ -13,7 +13,8 @@ FMcpToolDefinition FN2CMcpGetPythonScriptTool::GetDefinition() const
 		TEXT("get-python-script"),
 		TEXT("Get a Python script's full code and metadata by name. "
 			 "Returns the script code, description, tags, parameters, and usage stats. "
-			 "Use this before running or modifying an existing script."),
+			 "Use this to understand implementation details before extending or modifying a script. "
+			 "For just seeing importable functions (more token-efficient), use get-script-functions instead."),
 		TEXT("Python")
 	);
 
@@ -24,8 +25,8 @@ FMcpToolDefinition FN2CMcpGetPythonScriptTool::GetDefinition() const
 	TSharedPtr<FJsonObject> NameProp = MakeShareable(new FJsonObject);
 	NameProp->SetStringField(TEXT("type"), TEXT("string"));
 	NameProp->SetStringField(TEXT("description"),
-		TEXT("The name of the script to retrieve. Use list-python-scripts or "
-			 "search-python-scripts to discover available script names."));
+		TEXT("The name of the script to retrieve. Use search-python-scripts or "
+			 "list-python-scripts to discover available script names."));
 	Properties->SetObjectField(TEXT("name"), NameProp);
 
 	TSharedPtr<FJsonObject> Schema = MakeShareable(new FJsonObject);

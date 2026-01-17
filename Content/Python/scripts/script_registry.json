@@ -36,6 +36,13 @@
       "category": "core",
       "parameters": []
     },
+    "ue5_compat": {
+      "path": "core/ue5_compat.py",
+      "description": "UE5 Python API compatibility utilities and workarounds",
+      "tags": ["unreal", "ue5", "compatibility", "utilities", "api", "core"],
+      "category": "core",
+      "parameters": []
+    },
     "project_folder_scaffold": {
       "path": "utilities/project_folder_scaffold.py",
       "description": "Create standardized project folder structures from templates",
@@ -64,17 +71,31 @@
       "category": "data",
       "parameters": []
     },
+    "struct_creator": {
+      "path": "data/struct_creator.py",
+      "description": "Create UserDefinedStruct assets with variables for DataTable rows",
+      "tags": ["struct", "datatable", "creation", "variables", "data"],
+      "category": "data",
+      "parameters": []
+    },
     "utility_widget_launcher": {
       "path": "ui/utility_widget_launcher.py",
       "description": "Launch and manage Editor Utility Widgets programmatically",
       "tags": ["ui", "widgets", "editor", "tools", "euw"],
       "category": "ui",
       "parameters": []
+    },
+    "asset_editor_opener": {
+      "path": "ui/asset_editor_opener.py",
+      "description": "Open assets in their appropriate editors (Blueprint, UMG, etc.)",
+      "tags": ["assets", "editor", "blueprint", "widget", "ui", "open"],
+      "category": "ui",
+      "parameters": []
     }
   },
   "categories": ["core", "utilities", "data", "ui"],
   "stats": {
-    "total_scripts": 10,
-    "last_updated": "2026-01-06T00:00:00Z"
+    "total_scripts": 13,
+    "last_updated": "2026-01-16T23:30:00Z"
   }
 }

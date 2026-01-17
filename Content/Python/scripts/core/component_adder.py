@@ -17,6 +17,7 @@ Functions return standardized dicts: {success: bool, data: {...}, error: str|Non
 """
 
 import unreal
+import re
 from typing import List, Dict, Any, Optional
 
 
@@ -86,20 +87,17 @@ def add_component(
         # Add the new component
         new_handle, failure_reason = subsystem.add_new_subobject(params)
 
-        if not new_handle.is_valid():
-            failure_text = str(failure_reason) if failure_reason else "Unknown error"
+        # Check for failure by examining failure_reason
+        # In UE5, SubobjectDataHandle doesn't have is_valid() - check failure_reason instead
+        failure_text = str(failure_reason) if failure_reason else ""
+        if failure_text and failure_text not in ("", "None", "<None>"):
             return _make_error(f"Failed to add component: {failure_text}")
 
-        # Rename the component if possible
+        # Rename the component using the subsystem's rename method
         try:
-            data = subsystem.k2_find_subobject_data_from_handle(new_handle)
-            if data:
-                # The component was added - try to rename via the object
-                obj = data.get_object()
-                if obj and hasattr(obj, 'rename'):
-                    obj.rename(component_name)
+            subsystem.rename_subobject(new_handle, unreal.Text(component_name))
         except:
-            pass  # Renaming is not critical
+            pass  # Renaming failure is not critical
 
         # Compile if requested
         if compile_after:
@@ -227,18 +225,16 @@ def list_components(blueprint_path: str) -> Dict[str, Any]:
 
         components = []
         for handle in handles:
-            if not handle.is_valid():
-                continue
-
-            data = subsystem.k2_find_subobject_data_from_handle(handle)
-            if data:
-                obj = data.get_object()
-                if obj:
-                    components.append({
-                        "name": str(obj.get_name()),
-                        "class": str(obj.get_class().get_name()),
-                        "class_path": str(obj.get_class().get_path_name())
-                    })
+            try:
+                data = subsystem.k2_find_subobject_data_from_handle(handle)
+                if data:
+                    # Parse component info from export_text since get_object() isn't available
+                    exported = data.export_text()
+                    comp_info = _parse_subobject_data(exported)
+                    if comp_info:
+                        components.append(comp_info)
+            except:
+                continue  # Skip any handles that fail to parse
 
         return _make_success({
             "components": components,
@@ -321,6 +317,56 @@ def get_common_component_classes() -> Dict[str, str]:
 # ============================================================================
 # Private Helper Functions
 # ============================================================================
+
+def _parse_subobject_data(exported: str) -> Optional[Dict[str, Any]]:
+    """
+    Parse component info from SubobjectData.export_text() output.
+
+    UE5 doesn't expose get_object() on SubobjectData, so we parse the
+    WeakObjectPtr from export_text() instead.
+
+    Format example:
+    (WeakObjectPtr="/Script/Engine.StaticMeshComponent'/Game/BP.BP_C:MeshName'",...)
+
+    Args:
+        exported: The export_text() output string
+
+    Returns:
+        Dict with name, class, class_path or None if parsing fails
+    """
+    try:
+        # Extract WeakObjectPtr value
+        match = re.search(r'WeakObjectPtr="([^"]+)"', exported)
+        if not match:
+            return None
+
+        weak_ptr = match.group(1)
+
+        # Parse: /Script/Engine.ClassName'/Game/Path.Object:ComponentName'
+        class_match = re.match(r"(/[^']+)'([^']+)'", weak_ptr)
+        if not class_match:
+            return None
+
+        class_path = class_match.group(1)
+        object_path = class_match.group(2)
+
+        # Extract class name from path
+        class_name = class_path.split('.')[-1] if '.' in class_path else class_path.split('/')[-1]
+
+        # Extract component name (after last colon)
+        if ':' in object_path:
+            name = object_path.split(':')[-1]
+        else:
+            name = object_path.split('.')[-1]
+
+        return {
+            "name": name,
+            "class": class_name,
+            "class_path": class_path
+        }
+    except:
+        return None
+
 
 def _resolve_component_class(class_identifier: str) -> Optional[unreal.Class]:
     """

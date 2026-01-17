@@ -11,10 +11,10 @@ FMcpToolDefinition FN2CMcpGetScriptFunctionsTool::GetDefinition() const
 {
 	FMcpToolDefinition Definition(
 		TEXT("get-script-functions"),
-		TEXT("Get function signatures from a Python script using AST parsing. "
+		TEXT("Get function signatures from a Python script using AST parsing (~80% more token-efficient than get-python-script). "
 			 "Returns function names, parameters, types, and docstrings WITHOUT full implementation code. "
-			 "This is ~80% more token-efficient than get-python-script for discovering what functions are available. "
-			 "Use this to check what functions a script exports before importing and reusing them."),
+			 "Use this after search-python-scripts finds a partial match to see what functions can be imported. "
+			 "Then import in your code: 'from scripts.<category>.<script_name> import function_name'."),
 		TEXT("Python")
 	);
 

@@ -19,9 +19,11 @@ FMcpToolDefinition FN2CMcpRunPythonTool::GetDefinition() const
 	FMcpToolDefinition Definition(
 		TEXT("run-python"),
 		TEXT("Execute Python code in Unreal Engine's Python environment. "
-			 "The 'nodetocode' module provides Blueprint manipulation utilities. "
-			 "Set a 'result' variable in your script to return structured data. "
-			 "Example: import nodetocode as n2c; bp = n2c.get_focused_blueprint(); result = bp"),
+			 "WORKFLOW: 1) Search existing scripts first (search-python-scripts), "
+			 "2) Use Context7 MCP to look up UE Python APIs (resolve-library-id with 'unreal-python-stubhub', then query-docs) - never guess signatures, "
+			 "3) Import saved scripts: 'from scripts.<category>.<name> import func', "
+			 "4) Use 'import nodetocode as n2c' for Blueprint utilities (get_focused_blueprint, compile_blueprint, save_blueprint, tag_graph), "
+			 "5) Set 'result' variable to return structured data."),
 		TEXT("Python")
 	);
 
@@ -32,7 +34,9 @@ FMcpToolDefinition FN2CMcpRunPythonTool::GetDefinition() const
 	TSharedPtr<FJsonObject> CodeProp = MakeShareable(new FJsonObject);
 	CodeProp->SetStringField(TEXT("type"), TEXT("string"));
 	CodeProp->SetStringField(TEXT("description"),
-		TEXT("Python code to execute. Use 'import nodetocode as n2c' for Blueprint utilities. "
+		TEXT("Python code to execute. Use 'import unreal' for UE APIs (verify signatures with Context7). "
+			 "Use 'import nodetocode as n2c' for Blueprint utilities. "
+			 "Import saved scripts: 'from scripts.<category>.<script_name> import function_name'. "
 			 "Set 'result = {...}' to return structured data."));
 	Properties->SetObjectField(TEXT("code"), CodeProp);
 
@@ -207,6 +211,16 @@ FMcpToolCallResult FN2CMcpRunPythonTool::Execute(const TSharedPtr<FJsonObject>& 
 			{
 				ResponseJson->SetStringField(TEXT("stderr"), StderrContent);
 			}
+		}
+
+		// Add hint about ue5_compat.py when there's an error
+		bool bResponseSuccess = false;
+		ResponseJson->TryGetBoolField(TEXT("success"), bResponseSuccess);
+		if (!bResponseSuccess)
+		{
+			ResponseJson->SetStringField(TEXT("hint"),
+				TEXT("If this error relates to UE5 Python API limitations (e.g., missing methods, protected properties), ")
+				TEXT("check 'from scripts.core.ue5_compat import ...' for documented workarounds."));
 		}
 
 		// Serialize response as compact JSON (no pretty printing)

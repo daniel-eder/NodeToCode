@@ -512,12 +512,12 @@ public:
 
     /** Enable Python script-only mode. When enabled, most C++ MCP tools are disabled
      * and LLMs use Python scripts via run-python instead. Only essential tools remain:
-     * run-python, translate-focused-blueprint, get-available-llm-providers,
-     * get-available-translation-targets, get-translation-output-directory, and script management tools.
+     * run-python and script management tools (list, search, get, save, delete, get-functions).
+     * Pair with Context7 MCP server for UE Python API documentation lookup.
      * Note: Changing this setting requires an editor restart to take effect. */
     UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Node to Code | MCP Server",
         meta=(DisplayName="Enable Python Script-Only Mode",
-              ToolTip="When enabled, most C++ tools are disabled. LLMs use Python scripts via run-python instead. Essential tools remain: run-python, translate-focused-blueprint, get-available-llm-providers. Requires editor restart."))
+              ToolTip="When enabled, most C++ tools are disabled. LLMs use Python scripts via run-python instead. Includes script library tools for reusable script management. Pair with Context7 MCP for API docs. Requires editor restart."))
     bool bEnablePythonScriptOnlyMode = true;
 
     /** Get the API key for the selected provider */

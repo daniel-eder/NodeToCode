@@ -11,9 +11,11 @@ FMcpToolDefinition FN2CMcpSearchPythonScriptsTool::GetDefinition() const
 {
 	FMcpToolDefinition Definition(
 		TEXT("search-python-scripts"),
-		TEXT("Search Python scripts by name, description, or tags. "
+		TEXT("CALL THIS FIRST before writing any Python code. Search for existing scripts to reuse. "
 			 "Returns matching scripts sorted by relevance. "
-			 "Use this to find specific scripts or discover related scripts."),
+			 "If exact match found: execute it with run-python. "
+			 "If partial match found: use get-script-functions to see importable functions, then compose. "
+			 "Only write new code if no relevant scripts exist."),
 		TEXT("Python")
 	);
 
@@ -24,8 +26,8 @@ FMcpToolDefinition FN2CMcpSearchPythonScriptsTool::GetDefinition() const
 	TSharedPtr<FJsonObject> QueryProp = MakeShareable(new FJsonObject);
 	QueryProp->SetStringField(TEXT("type"), TEXT("string"));
 	QueryProp->SetStringField(TEXT("description"),
-		TEXT("Search query to match against script names, descriptions, and tags. "
-			 "Case-insensitive partial matching."));
+		TEXT("Search query with keywords from the task. Matches against script names, descriptions, and tags. "
+			 "Case-insensitive partial matching. Try multiple relevant keywords if first search yields no results."));
 	Properties->SetObjectField(TEXT("query"), QueryProp);
 
 	// limit property - optional number
