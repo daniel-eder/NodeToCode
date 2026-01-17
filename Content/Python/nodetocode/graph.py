@@ -129,6 +129,8 @@ def add_node_to_graph(
     Add a Blueprint node to the currently focused graph.
 
     Use search_blueprint_nodes() first to get the actionIdentifier for the node.
+    The response includes full pin information, allowing immediate connection
+    without needing to call find_nodes_in_graph().
 
     Args:
         node_name: Name of the node (used for action lookup)
@@ -144,7 +146,15 @@ def add_node_to_graph(
                 nodeName: str,
                 graphName: str,
                 blueprintName: str,
-                location: {x: float, y: float}
+                location: {x: float, y: float},
+                inputPins: [
+                    {pinGuid: str, pinName: str, displayName: str, type: str, defaultValue?: str},
+                    ...
+                ],
+                outputPins: [
+                    {pinGuid: str, pinName: str, displayName: str, type: str},
+                    ...
+                ]
             },
             error: str or None
         }
@@ -163,6 +173,9 @@ def add_node_to_graph(
         )
         if added['success']:
             print(f"Added node with GUID: {added['data']['nodeGuid']}")
+            # Pin GUIDs are immediately available for connecting
+            exec_pin = next(p for p in added['data']['outputPins'] if p['type'] == 'exec')
+            print(f"Exec output pin: {exec_pin['pinGuid']}")
     """
     if not node_name or not node_name.strip():
         return make_error_result("node_name cannot be empty")

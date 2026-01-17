@@ -41,7 +41,7 @@ private:
                          UBlueprint* Blueprint,
                          UEdGraph* Graph,
                          const FVector2D& Location,
-                         FString& OutNodeId,
+                         UEdGraphNode*& OutSpawnedNode,
                          FString& OutError);
     
     // Convert spawned node to N2CJSON format

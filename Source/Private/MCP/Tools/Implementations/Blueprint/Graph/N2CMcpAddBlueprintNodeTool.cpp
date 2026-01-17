@@ -115,34 +115,74 @@ FMcpToolCallResult FN2CMcpAddBlueprintNodeTool::Execute(const TSharedPtr<FJsonOb
     }
     
     // Find and spawn the node
-    FString SpawnedNodeId;
+    UEdGraphNode* SpawnedNode = nullptr;
     FString SpawnError;
-    
-    if (!FindAndSpawnNode(NodeName, ActionIdentifier, ActiveBlueprint, ActiveGraph, Location, SpawnedNodeId, SpawnError))
+
+    if (!FindAndSpawnNode(NodeName, ActionIdentifier, ActiveBlueprint, ActiveGraph, Location, SpawnedNode, SpawnError))
     {
         return FMcpToolCallResult::CreateErrorResult(SpawnError);
     }
-    
-    FN2CLogger::Get().Log(FString::Printf(TEXT("Successfully added node '%s' to graph '%s'"), 
+
+    FN2CLogger::Get().Log(FString::Printf(TEXT("Successfully added node '%s' to graph '%s'"),
         *NodeName, *ActiveGraph->GetName()), EN2CLogSeverity::Info);
-    
-    // Return success with the spawned node ID
+
+    // Build result with pin information for immediate use
     TSharedPtr<FJsonObject> ResultObject = MakeShareable(new FJsonObject);
     ResultObject->SetBoolField(TEXT("success"), true);
-    ResultObject->SetStringField(TEXT("nodeId"), SpawnedNodeId);
+    ResultObject->SetStringField(TEXT("nodeGuid"), SpawnedNode->NodeGuid.ToString());
+    ResultObject->SetStringField(TEXT("nodeName"), SpawnedNode->GetNodeTitle(ENodeTitleType::ListView).ToString());
     ResultObject->SetStringField(TEXT("graphName"), ActiveGraph->GetName());
     ResultObject->SetStringField(TEXT("blueprintName"), ActiveBlueprint->GetName());
-    
+
+    TSharedPtr<FJsonObject> LocationObject = MakeShareable(new FJsonObject);
+    LocationObject->SetNumberField(TEXT("x"), SpawnedNode->NodePosX);
+    LocationObject->SetNumberField(TEXT("y"), SpawnedNode->NodePosY);
+    ResultObject->SetObjectField(TEXT("location"), LocationObject);
+
+    // Add pin information so caller can immediately connect pins without additional lookup
+    TArray<TSharedPtr<FJsonValue>> InputPinsArray;
+    TArray<TSharedPtr<FJsonValue>> OutputPinsArray;
+
+    for (UEdGraphPin* Pin : SpawnedNode->Pins)
+    {
+        if (!Pin || Pin->bHidden)
+        {
+            continue;
+        }
+
+        TSharedPtr<FJsonObject> PinObj = MakeShareable(new FJsonObject);
+        PinObj->SetStringField(TEXT("pinGuid"), Pin->PinId.ToString());
+        PinObj->SetStringField(TEXT("pinName"), Pin->PinName.ToString());
+        PinObj->SetStringField(TEXT("displayName"), Pin->GetDisplayName().ToString());
+        PinObj->SetStringField(TEXT("type"), Pin->PinType.PinCategory.ToString());
+
+        // Include default value for input pins
+        if (Pin->Direction == EGPD_Input && !Pin->GetDefaultAsString().IsEmpty())
+        {
+            PinObj->SetStringField(TEXT("defaultValue"), Pin->GetDefaultAsString());
+        }
+
+        if (Pin->Direction == EGPD_Input)
+        {
+            InputPinsArray.Add(MakeShareable(new FJsonValueObject(PinObj)));
+        }
+        else
+        {
+            OutputPinsArray.Add(MakeShareable(new FJsonValueObject(PinObj)));
+        }
+    }
+
+    ResultObject->SetArrayField(TEXT("inputPins"), InputPinsArray);
+    ResultObject->SetArrayField(TEXT("outputPins"), OutputPinsArray);
+
     FString ResultJson;
     TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultJson);
     FJsonSerializer::Serialize(ResultObject.ToSharedRef(), Writer);
-    
-    // Result = FMcpToolCallResult::CreateTextResult(ResultJson); // This was assigning to the outer scope Result
 
     // Schedule deferred refresh of BlueprintActionDatabase
     FN2CMcpBlueprintUtils::DeferredRefreshBlueprintActionDatabase();
-    
-    return FMcpToolCallResult::CreateTextResult(ResultJson); // Return the result from the lambda
+
+    return FMcpToolCallResult::CreateTextResult(ResultJson);
 }
 
 bool FN2CMcpAddBlueprintNodeTool::ParseArguments(
@@ -190,7 +230,7 @@ bool FN2CMcpAddBlueprintNodeTool::FindAndSpawnNode(
     UBlueprint* Blueprint,
     UEdGraph* Graph,
     const FVector2D& Location,
-    FString& OutNodeId,
+    UEdGraphNode*& OutSpawnedNode,
     FString& OutError)
 {
     // Build the action filter for the current context
@@ -309,22 +349,18 @@ bool FN2CMcpAddBlueprintNodeTool::FindAndSpawnNode(
             return false;
         }
     }
-    
-    // Generate a unique ID for the spawned node
-    static int32 SpawnedNodeCounter = 0;
-    OutNodeId = FString::Printf(TEXT("SpawnedNode_%d"), ++SpawnedNodeCounter);
-    
+
+    // Return the spawned node for the caller to use
+    OutSpawnedNode = SpawnedNode;
+
     // Compile Blueprint synchronously to ensure preview actors are properly updated
     FN2CMcpBlueprintUtils::MarkBlueprintAsModifiedAndCompile(Blueprint);
-    
-    // If it's a K2Node, we could return additional information
-    if (UK2Node* K2Node = Cast<UK2Node>(SpawnedNode))
-    {
-        FN2CLogger::Get().Log(FString::Printf(TEXT("Spawned K2Node: %s at (%.2f, %.2f)"), 
-            *K2Node->GetNodeTitle(ENodeTitleType::ListView).ToString(),
-            SpawnedNode->NodePosX, SpawnedNode->NodePosY), EN2CLogSeverity::Debug);
-    }
-    
+
+    // Log for debugging
+    FN2CLogger::Get().Log(FString::Printf(TEXT("Spawned node: %s at (%.2f, %.2f)"),
+        *SpawnedNode->GetNodeTitle(ENodeTitleType::ListView).ToString(),
+        SpawnedNode->NodePosX, SpawnedNode->NodePosY), EN2CLogSeverity::Debug);
+
     return true;
 }
 

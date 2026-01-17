@@ -1024,24 +1024,59 @@ FString UN2CPythonBridge::AddNodeToGraph(const FString& NodeName, const FString&
 	FN2CMcpBlueprintUtils::MarkBlueprintAsModifiedAndCompile(ActiveBlueprint);
 	FN2CMcpBlueprintUtils::DeferredRefreshBlueprintActionDatabase();
 
-	// Build result
-	FString DataJson = FString::Printf(TEXT(
-		"{"
-		"\"nodeGuid\": \"%s\","
-		"\"nodeName\": \"%s\","
-		"\"graphName\": \"%s\","
-		"\"blueprintName\": \"%s\","
-		"\"location\": {\"x\": %.2f, \"y\": %.2f}"
-		"}"
-	),
-		*SpawnedNode->NodeGuid.ToString(),
-		*SpawnedNode->GetNodeTitle(ENodeTitleType::ListView).ToString().ReplaceCharWithEscapedChar(),
-		*ActiveGraph->GetName().ReplaceCharWithEscapedChar(),
-		*ActiveBlueprint->GetName().ReplaceCharWithEscapedChar(),
-		SpawnedNode->NodePosX, SpawnedNode->NodePosY
-	);
+	// Build result with pin information for immediate use
+	TSharedPtr<FJsonObject> ResultObject = MakeShareable(new FJsonObject);
+	ResultObject->SetStringField(TEXT("nodeGuid"), SpawnedNode->NodeGuid.ToString());
+	ResultObject->SetStringField(TEXT("nodeName"), SpawnedNode->GetNodeTitle(ENodeTitleType::ListView).ToString());
+	ResultObject->SetStringField(TEXT("graphName"), ActiveGraph->GetName());
+	ResultObject->SetStringField(TEXT("blueprintName"), ActiveBlueprint->GetName());
 
-	return MakeSuccessJson(DataJson);
+	TSharedPtr<FJsonObject> LocationObject = MakeShareable(new FJsonObject);
+	LocationObject->SetNumberField(TEXT("x"), SpawnedNode->NodePosX);
+	LocationObject->SetNumberField(TEXT("y"), SpawnedNode->NodePosY);
+	ResultObject->SetObjectField(TEXT("location"), LocationObject);
+
+	// Add pin information so caller can immediately connect pins without additional lookup
+	TArray<TSharedPtr<FJsonValue>> InputPinsArray;
+	TArray<TSharedPtr<FJsonValue>> OutputPinsArray;
+
+	for (UEdGraphPin* Pin : SpawnedNode->Pins)
+	{
+		if (!Pin || Pin->bHidden)
+		{
+			continue;
+		}
+
+		TSharedPtr<FJsonObject> PinObj = MakeShareable(new FJsonObject);
+		PinObj->SetStringField(TEXT("pinGuid"), Pin->PinId.ToString());
+		PinObj->SetStringField(TEXT("pinName"), Pin->PinName.ToString());
+		PinObj->SetStringField(TEXT("displayName"), Pin->GetDisplayName().ToString());
+		PinObj->SetStringField(TEXT("type"), Pin->PinType.PinCategory.ToString());
+
+		// Include default value for input pins
+		if (Pin->Direction == EGPD_Input && !Pin->GetDefaultAsString().IsEmpty())
+		{
+			PinObj->SetStringField(TEXT("defaultValue"), Pin->GetDefaultAsString());
+		}
+
+		if (Pin->Direction == EGPD_Input)
+		{
+			InputPinsArray.Add(MakeShareable(new FJsonValueObject(PinObj)));
+		}
+		else
+		{
+			OutputPinsArray.Add(MakeShareable(new FJsonValueObject(PinObj)));
+		}
+	}
+
+	ResultObject->SetArrayField(TEXT("inputPins"), InputPinsArray);
+	ResultObject->SetArrayField(TEXT("outputPins"), OutputPinsArray);
+
+	FString ResultJsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultJsonString);
+	FJsonSerializer::Serialize(ResultObject.ToSharedRef(), Writer);
+
+	return MakeSuccessJson(ResultJsonString);
 }
 
 FString UN2CPythonBridge::ConnectPins(const FString& ConnectionsJson, bool bBreakExistingLinks)
