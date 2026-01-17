@@ -34,6 +34,24 @@ Script Management:
     # Save a new script for reuse
     n2c.save_script("my_script", code, "Description", tags=["gameplay"])
 
+Graph Editing:
+    # Search for and add nodes
+    results = n2c.search_blueprint_nodes("Print String")
+    node = results['data']['nodes'][0]
+    added = n2c.add_node_to_graph(node['displayName'], node['spawnMetadata']['actionIdentifier'])
+
+    # Connect nodes
+    n2c.connect_pins([{"from": {...}, "to": {...}}])
+
+    # Find and delete nodes
+    found = n2c.find_nodes_in_graph(["Print"])
+    n2c.delete_nodes([found['data']['nodes'][0]['nodeGuid']])
+
+Function Pin Management:
+    # Add function parameters
+    n2c.add_function_input_pin("Target", "/Script/Engine.Actor")
+    n2c.add_function_return_pin("bSuccess", "bool")
+
 Return Format:
     All functions return a dictionary with:
     - 'success': bool - True if the operation succeeded
@@ -46,6 +64,8 @@ Available Functions:
     - compile_blueprint(path=None) - Compile a Blueprint
     - save_blueprint(path=None) - Save a Blueprint to disk
     - load_blueprint(path) - Load a Blueprint by path
+    - open_blueprint(path, focus_graph) - Open Blueprint in editor
+    - open_blueprint_function(name) - Focus a function in the open Blueprint
 
     Script Management:
     - list_scripts(category, limit) - List available scripts
@@ -56,6 +76,21 @@ Available Functions:
     - save_script(name, code, description, tags, category) - Save new script
     - delete_script(name) - Remove a script
     - get_script_stats() - Get script library statistics
+
+    Graph Editing:
+    - search_blueprint_nodes(term, context_sensitive, max) - Search for nodes to add
+    - add_node_to_graph(name, action_id, x, y) - Add a node to focused graph
+    - connect_pins(connections, break_existing) - Connect pins between nodes
+    - set_pin_value(node_guid, pin_guid, value) - Set input pin default value
+    - delete_nodes(guids, preserve_connections, force) - Delete nodes
+    - find_nodes_in_graph(terms, type, case_sensitive) - Find nodes by keyword/GUID
+    - create_comment_node(guids, text, color, font_size) - Create comment around nodes
+
+    Function Pin Management:
+    - add_function_input_pin(name, type, default, by_ref, tooltip) - Add input param
+    - add_function_return_pin(name, type, tooltip) - Add return value
+    - remove_function_entry_pin(name) - Remove input parameter
+    - remove_function_return_pin(name) - Remove return value
 
     NodeToCode-Specific (Tagging & LLM):
     - tag_graph(tag, category, description) - Tag the focused graph
@@ -93,13 +128,34 @@ from .scripts import (
     get_script_stats,
 )
 
-# NodeToCode-specific features (tagging, LLM info)
+# NodeToCode-specific features (tagging, LLM info, navigation)
 from .bridge import (
     tag_graph,
     list_tags,
     remove_tag,
     get_llm_providers,
     get_active_provider,
+    open_blueprint,
+    open_blueprint_function,
+)
+
+# Graph editing operations
+from .graph import (
+    search_blueprint_nodes,
+    add_node_to_graph,
+    connect_pins,
+    set_pin_value,
+    delete_nodes,
+    find_nodes_in_graph,
+    create_comment_node,
+)
+
+# Function pin management
+from .functions import (
+    add_function_input_pin,
+    add_function_return_pin,
+    remove_function_entry_pin,
+    remove_function_return_pin,
 )
 
 # Utility functions
@@ -133,12 +189,27 @@ __all__ = [
     'save_script',
     'delete_script',
     'get_script_stats',
-    # NodeToCode-specific (tagging, LLM info)
+    # Graph editing
+    'search_blueprint_nodes',
+    'add_node_to_graph',
+    'connect_pins',
+    'set_pin_value',
+    'delete_nodes',
+    'find_nodes_in_graph',
+    'create_comment_node',
+    # Function pin management
+    'add_function_input_pin',
+    'add_function_return_pin',
+    'remove_function_entry_pin',
+    'remove_function_return_pin',
+    # NodeToCode-specific (tagging, LLM info, navigation)
     'tag_graph',
     'list_tags',
     'remove_tag',
     'get_llm_providers',
     'get_active_provider',
+    'open_blueprint',
+    'open_blueprint_function',
     # Utilities
     'get_editor_subsystem',
     'is_blueprint_valid',

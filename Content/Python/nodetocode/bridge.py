@@ -206,3 +206,73 @@ def get_active_provider() -> Dict[str, Any]:
     except Exception as e:
         log_error(f"get_active_provider failed: {e}")
         return make_error_result(str(e))
+
+
+# ============== Blueprint Editor Navigation ==============
+
+def open_blueprint(blueprint_path: str, focus_graph: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Open a Blueprint asset in the editor.
+
+    Args:
+        blueprint_path: Asset path of the Blueprint (e.g., "/Game/Blueprints/BP_MyActor")
+        focus_graph: Optional graph name to focus (e.g., "EventGraph", "ConstructionScript", or function name)
+
+    Returns:
+        {success, data: {blueprintName, blueprintPath, focusedGraph, eventGraphCount, functionCount}, error}
+
+    Example:
+        # Open a Blueprint
+        result = open_blueprint("/Game/Blueprints/BP_Player")
+
+        # Open and focus on the EventGraph
+        result = open_blueprint("/Game/Blueprints/BP_Player", "EventGraph")
+
+        # Open and focus on a specific function
+        result = open_blueprint("/Game/Blueprints/BP_Player", "HandleInput")
+    """
+    if not blueprint_path or not blueprint_path.strip():
+        return make_error_result("blueprint_path cannot be empty")
+
+    try:
+        result = unreal.N2CPythonBridge.open_blueprint(
+            blueprint_path.strip(),
+            (focus_graph or "").strip()
+        )
+        return _parse_bridge_result(result)
+    except Exception as e:
+        log_error(f"open_blueprint failed: {e}")
+        return make_error_result(str(e))
+
+
+def open_blueprint_function(function_name: str) -> Dict[str, Any]:
+    """
+    Open/focus a function graph in the currently open Blueprint.
+
+    The Blueprint must already be open in the editor. Use open_blueprint() first
+    if needed.
+
+    Args:
+        function_name: Name of the function to open
+
+    Returns:
+        {success, data: {functionName, blueprintName, blueprintPath, graphGuid}, error}
+
+    Example:
+        # First open the Blueprint
+        open_blueprint("/Game/Blueprints/BP_Player")
+
+        # Then focus on a specific function
+        result = open_blueprint_function("HandleDamage")
+        if result['success']:
+            print(f"Opened function: {result['data']['functionName']}")
+    """
+    if not function_name or not function_name.strip():
+        return make_error_result("function_name cannot be empty")
+
+    try:
+        result = unreal.N2CPythonBridge.open_blueprint_function(function_name.strip())
+        return _parse_bridge_result(result)
+    except Exception as e:
+        log_error(f"open_blueprint_function failed: {e}")
+        return make_error_result(str(e))
