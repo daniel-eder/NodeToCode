@@ -77,7 +77,9 @@ def create_struct_with_variables(
 
     try:
         # Create the struct
-        success, struct, error = unreal.N2CStructUtilsLibrary.create_user_defined_struct(
+        # UE Python returns: (return_value, out_param1, out_param2)
+        # So order is: (struct, bSuccess, errorMessage)
+        struct, success, error = unreal.N2CStructUtilsLibrary.create_user_defined_struct(
             package_path, struct_name)
 
         if not success or not struct:
@@ -112,7 +114,6 @@ def create_struct_with_variables(
         if failed_vars:
             return _make_success({
                 'struct_path': struct_path,
-                'struct': struct,
                 'variables_added': added_vars,
                 'variables_failed': failed_vars,
                 'partial_success': True
@@ -120,7 +121,6 @@ def create_struct_with_variables(
 
         return _make_success({
             'struct_path': struct_path,
-            'struct': struct,
             'variables_added': added_vars,
             'variables_failed': []
         })
@@ -170,12 +170,15 @@ def create_datatable_row_struct(
         if not struct_result['success']:
             return struct_result
 
-        struct = struct_result['data']['struct']
         struct_path = struct_result['data']['struct_path']
+
+        # Load the struct we just created
+        struct = unreal.N2CStructUtilsLibrary.load_user_defined_struct(struct_path)
+        if not struct:
+            return _make_error(f"Failed to load created struct at: {struct_path}")
 
         result_data = {
             'struct_path': struct_path,
-            'struct': struct,
             'variables_added': struct_result['data']['variables_added']
         }
 
@@ -193,7 +196,7 @@ def create_datatable_row_struct(
                 unreal.EditorAssetLibrary.save_asset(dt_path)
 
                 result_data['datatable_path'] = dt_path
-                result_data['datatable'] = datatable
+                result_data['datatable_created'] = True
             else:
                 return _make_error("Struct created but DataTable creation failed")
 

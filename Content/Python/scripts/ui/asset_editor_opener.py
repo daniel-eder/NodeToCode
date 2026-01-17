@@ -198,70 +198,54 @@ def close_all_asset_editors() -> Dict[str, Any]:
     """
     Close all open asset editors.
 
+    Note: This function is not fully supported in UE5 Python API.
+    The AssetEditorSubsystem.get_all_edited_assets() method is not exposed.
+    Use close_asset_editors(path) to close specific asset editors instead.
+
     Returns:
-        {success, data: {closed}, error}
+        {success, data: {message}, error}
 
     Example:
         result = close_all_asset_editors()
     """
-    try:
-        editor_subsystem = unreal.get_editor_subsystem(unreal.AssetEditorSubsystem)
-        if editor_subsystem is None:
-            return _make_error("Could not get AssetEditorSubsystem")
-
-        # CloseAllAssetEditors returns the number of editors closed
-        editor_subsystem.close_all_asset_editors()
-
-        return _make_success({
-            "closed": True
-        })
-
-    except Exception as e:
-        return _make_error(f"Error closing all asset editors: {e}")
+    # UE5 Python API does not expose get_all_edited_assets() or close_all_asset_editors()
+    # This is a known limitation of the UE5 Python bindings
+    return _make_success({
+        "message": "close_all_asset_editors is not supported in UE5 Python API. Use close_asset_editors(path) for specific assets.",
+        "supported": False
+    })
 
 
 def is_asset_editor_open(asset_path: str) -> Dict[str, Any]:
     """
     Check if an asset has any open editors.
 
+    Note: This function is not fully supported in UE5 Python API.
+    Neither find_editors_for_asset() nor get_all_edited_assets() are exposed.
+
     Args:
         asset_path: Path to the asset to check
 
     Returns:
-        {success, data: {asset_path, is_open}, error}
+        {success, data: {asset_path, is_open, supported}, error}
 
     Example:
         result = is_asset_editor_open('/Game/Blueprints/BP_Player')
-        if result['data']['is_open']:
-            print("Editor is open")
     """
     if not asset_path:
         return _make_error("Asset path cannot be empty")
 
-    try:
-        if not unreal.EditorAssetLibrary.does_asset_exist(asset_path):
-            return _make_error(f"Asset does not exist: {asset_path}")
+    if not unreal.EditorAssetLibrary.does_asset_exist(asset_path):
+        return _make_error(f"Asset does not exist: {asset_path}")
 
-        asset = unreal.EditorAssetLibrary.load_asset(asset_path)
-        if asset is None:
-            return _make_error(f"Failed to load asset: {asset_path}")
-
-        editor_subsystem = unreal.get_editor_subsystem(unreal.AssetEditorSubsystem)
-        if editor_subsystem is None:
-            return _make_error("Could not get AssetEditorSubsystem")
-
-        # Find editors for this asset
-        editors = editor_subsystem.find_editors_for_asset(asset)
-        is_open = len(editors) > 0 if editors else False
-
-        return _make_success({
-            "asset_path": asset_path,
-            "is_open": is_open,
-            "editor_count": len(editors) if editors else 0
-        })
-
-    except Exception as e:
-        return _make_error(f"Error checking asset editor: {e}")
+    # UE5 Python API does not expose find_editors_for_asset() or get_all_edited_assets()
+    # We cannot reliably determine if an asset editor is open
+    return _make_success({
+        "asset_path": asset_path,
+        "is_open": None,
+        "supported": False,
+        "message": "is_asset_editor_open is not supported in UE5 Python API"
+    })
 
 
 def open_and_focus_asset(asset_path: str) -> Dict[str, Any]:
@@ -270,6 +254,9 @@ def open_and_focus_asset(asset_path: str) -> Dict[str, Any]:
 
     If the editor is already open, it will be focused.
     If not, it will be opened and focused.
+
+    Note: Due to UE5 Python API limitations, we cannot detect if the editor
+    was already open. The action will always be 'opened_or_focused'.
 
     Args:
         asset_path: Path to the asset
@@ -295,18 +282,14 @@ def open_and_focus_asset(asset_path: str) -> Dict[str, Any]:
         if editor_subsystem is None:
             return _make_error("Could not get AssetEditorSubsystem")
 
-        # Check if already open
-        editors = editor_subsystem.find_editors_for_asset(asset)
-        was_open = len(editors) > 0 if editors else False
-
-        # Open (or re-focus if already open)
+        # Open the editor - UE will focus it if already open
+        # Note: We cannot detect if it was already open due to API limitations
         editor_subsystem.open_editor_for_assets([asset])
 
         return _make_success({
             "asset_path": asset_path,
             "asset_name": asset_path.split('/')[-1],
-            "action": "focused" if was_open else "opened",
-            "was_already_open": was_open
+            "action": "opened_or_focused"
         })
 
     except Exception as e:

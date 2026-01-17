@@ -41,8 +41,10 @@ public:
 	 * @param bSuccess Whether the struct was successfully created
 	 * @param ErrorMessage Error message if the operation failed
 	 * @return The created UserDefinedStruct, or nullptr on failure
+	 *
+	 * Note: ExpandBoolAsExecs removed to fix Python binding compatibility issue.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "NodeToCode|Struct", meta = (DisplayName = "Create User Defined Struct", ExpandBoolAsExecs = "bSuccess"))
+	UFUNCTION(BlueprintCallable, Category = "NodeToCode|Struct", meta = (DisplayName = "Create User Defined Struct"))
 	static UUserDefinedStruct* CreateUserDefinedStruct(
 		const FString& PackagePath,
 		const FString& StructName,
@@ -63,8 +65,10 @@ public:
 	 *        - Structs: Use full path like '/Script/CoreUObject.Vector' or struct name
 	 * @param bSuccess Whether the variable was successfully added
 	 * @param ErrorMessage Error message if the operation failed
+	 *
+	 * Note: ExpandBoolAsExecs removed to fix Python binding compatibility issue.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "NodeToCode|Struct", meta = (DisplayName = "Add Struct Variable", ExpandBoolAsExecs = "bSuccess"))
+	UFUNCTION(BlueprintCallable, Category = "NodeToCode|Struct", meta = (DisplayName = "Add Struct Variable"))
 	static void AddStructVariable(
 		UUserDefinedStruct* Struct,
 		const FString& VariableName,
@@ -81,8 +85,10 @@ public:
 	 * @param bSuccess Whether all variables were successfully added
 	 * @param ErrorMessage Error message if any operation failed
 	 * @return Number of variables successfully added
+	 *
+	 * Note: ExpandBoolAsExecs removed to fix Python binding compatibility issue.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "NodeToCode|Struct", meta = (DisplayName = "Add Struct Variables Batch", ExpandBoolAsExecs = "bSuccess"))
+	UFUNCTION(BlueprintCallable, Category = "NodeToCode|Struct", meta = (DisplayName = "Add Struct Variables Batch"))
 	static int32 AddStructVariablesBatch(
 		UUserDefinedStruct* Struct,
 		const TArray<FString>& VariableNames,
@@ -96,8 +102,11 @@ public:
 	 * @param Struct The UserDefinedStruct to modify
 	 * @param bSuccess Whether the default variable was successfully removed
 	 * @param ErrorMessage Error message if the operation failed
+	 *
+	 * Note: ExpandBoolAsExecs removed to fix Python binding compatibility issue.
+	 * The bool out parameter was being misinterpreted when called from Python.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "NodeToCode|Struct", meta = (DisplayName = "Remove Default Struct Variable", ExpandBoolAsExecs = "bSuccess"))
+	UFUNCTION(BlueprintCallable, Category = "NodeToCode|Struct", meta = (DisplayName = "Remove Default Struct Variable"))
 	static void RemoveDefaultVariable(
 		UUserDefinedStruct* Struct,
 		bool& bSuccess,
