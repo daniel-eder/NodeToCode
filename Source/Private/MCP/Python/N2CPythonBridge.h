@@ -126,10 +126,22 @@ public:
 	 * @param SearchTerm The text query to search for
 	 * @param bContextSensitive If true, performs context-sensitive search
 	 * @param MaxResults Maximum number of results to return (1-100)
+	 * @param CategoryFilter Optional category filter (e.g., "flowcontrol", "operators", "struct")
+	 * @param bExcludeVMFunctions If true (default), excludes low-level VM math functions
 	 * @return JSON with matching nodes and their actionIdentifiers for spawning
 	 */
 	UFUNCTION(BlueprintCallable, Category = "NodeToCode|Python")
-	static FString SearchBlueprintNodes(const FString& SearchTerm, bool bContextSensitive = true, int32 MaxResults = 20);
+	static FString SearchBlueprintNodes(const FString& SearchTerm, bool bContextSensitive = true, int32 MaxResults = 20,
+		const FString& CategoryFilter = TEXT(""), bool bExcludeVMFunctions = true);
+
+private:
+	/** Check if the action's category matches the filter */
+	static bool MatchesCategoryFilter(const FString& ActionSearchText, const FString& CategoryFilter);
+
+	/** Check if the action is a VMFunction that should be excluded */
+	static bool IsExcludedVMFunction(const FString& ActionSearchText);
+
+public:
 
 	/**
 	 * Add a Blueprint node to the focused graph.

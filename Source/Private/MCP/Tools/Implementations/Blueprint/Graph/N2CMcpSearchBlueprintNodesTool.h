@@ -31,7 +31,15 @@ private:
                        bool& OutContextSensitive,
                        int32& OutMaxResults,
                        TSharedPtr<FJsonObject>& OutBlueprintContext,
+                       FString& OutCategoryFilter,
+                       bool& bOutExcludeVMFunctions,
                        FString& OutError);
+
+    /** Check if the action's category matches the filter */
+    static bool MatchesCategoryFilter(const FString& ActionSearchText, const FString& CategoryFilter);
+
+    /** Check if the action is a VMFunction that should be excluded */
+    static bool IsExcludedVMFunction(const FString& ActionSearchText);
     
     bool GetContextFromPaths(const TSharedPtr<FJsonObject>& BlueprintContext,
                             UBlueprint*& OutBlueprint,

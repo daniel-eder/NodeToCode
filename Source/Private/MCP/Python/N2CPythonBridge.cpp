@@ -791,7 +791,8 @@ FString UN2CPythonBridge::OpenBlueprintFunction(const FString& FunctionName)
 
 // ========== Blueprint Graph Editing ==========
 
-FString UN2CPythonBridge::SearchBlueprintNodes(const FString& SearchTerm, bool bContextSensitive, int32 MaxResults)
+FString UN2CPythonBridge::SearchBlueprintNodes(const FString& SearchTerm, bool bContextSensitive, int32 MaxResults,
+	const FString& CategoryFilter, bool bExcludeVMFunctions)
 {
 	if (SearchTerm.IsEmpty())
 	{
@@ -856,31 +857,45 @@ FString UN2CPythonBridge::SearchBlueprintNodes(const FString& SearchTerm, bool b
 			}
 		}
 
-		if (bMatchesAllTerms)
+		if (!bMatchesAllTerms)
 		{
-			TSharedPtr<FJsonObject> NodeJson = MakeShareable(new FJsonObject);
-
-			// Get basic action info
-			FString ActionIdentifier = ActionSearchText.Replace(TEXT("\n"), TEXT(">"));
-			NodeJson->SetStringField(TEXT("name"), ActionSearchText);
-
-			// Extract category path from search text
-			TArray<FString> Categories;
-			ActionSearchText.ParseIntoArray(Categories, TEXT(">"), true);
-			if (Categories.Num() > 0)
-			{
-				NodeJson->SetStringField(TEXT("displayName"), Categories.Last().TrimStartAndEnd());
-			}
-
-			// Spawn metadata for adding the node later
-			TSharedPtr<FJsonObject> SpawnMetadata = MakeShareable(new FJsonObject);
-			SpawnMetadata->SetStringField(TEXT("actionIdentifier"), ActionIdentifier);
-			SpawnMetadata->SetBoolField(TEXT("isContextSensitive"), bContextSensitive);
-			NodeJson->SetObjectField(TEXT("spawnMetadata"), SpawnMetadata);
-
-			ResultNodes.Add(MakeShareable(new FJsonValueObject(NodeJson)));
-			ResultCount++;
+			continue;
 		}
+
+		// Apply category filter if specified
+		if (!CategoryFilter.IsEmpty() && !MatchesCategoryFilter(ActionSearchText, CategoryFilter))
+		{
+			continue;
+		}
+
+		// Apply VMFunction exclusion filter
+		if (bExcludeVMFunctions && IsExcludedVMFunction(ActionSearchText))
+		{
+			continue;
+		}
+
+		TSharedPtr<FJsonObject> NodeJson = MakeShareable(new FJsonObject);
+
+		// Get basic action info
+		FString ActionIdentifier = ActionSearchText.Replace(TEXT("\n"), TEXT(">"));
+		NodeJson->SetStringField(TEXT("name"), ActionSearchText);
+
+		// Extract category path from search text
+		TArray<FString> Categories;
+		ActionSearchText.ParseIntoArray(Categories, TEXT(">"), true);
+		if (Categories.Num() > 0)
+		{
+			NodeJson->SetStringField(TEXT("displayName"), Categories.Last().TrimStartAndEnd());
+		}
+
+		// Spawn metadata for adding the node later
+		TSharedPtr<FJsonObject> SpawnMetadata = MakeShareable(new FJsonObject);
+		SpawnMetadata->SetStringField(TEXT("actionIdentifier"), ActionIdentifier);
+		SpawnMetadata->SetBoolField(TEXT("isContextSensitive"), bContextSensitive);
+		NodeJson->SetObjectField(TEXT("spawnMetadata"), SpawnMetadata);
+
+		ResultNodes.Add(MakeShareable(new FJsonValueObject(NodeJson)));
+		ResultCount++;
 	}
 
 	// Build result JSON
@@ -896,6 +911,63 @@ FString UN2CPythonBridge::SearchBlueprintNodes(const FString& SearchTerm, bool b
 	FN2CMcpBlueprintUtils::DeferredRefreshBlueprintActionDatabase();
 
 	return MakeSuccessJson(ResultJsonString);
+}
+
+bool UN2CPythonBridge::MatchesCategoryFilter(const FString& ActionSearchText, const FString& CategoryFilter)
+{
+	// Categories in the search text are enclosed in pipes, e.g., |utilities|flowcontrol
+	// We do a case-insensitive partial match on the category portion
+	FString LowerSearchText = ActionSearchText.ToLower();
+	FString LowerCategoryFilter = CategoryFilter.ToLower();
+
+	// Look for the category pattern between pipes
+	int32 PipeIndex = LowerSearchText.Find(TEXT("|"));
+	if (PipeIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	// Extract everything after the first pipe (the category section)
+	FString CategorySection = LowerSearchText.Mid(PipeIndex);
+
+	// Check if the filter matches anywhere in the category section
+	return CategorySection.Contains(LowerCategoryFilter);
+}
+
+bool UN2CPythonBridge::IsExcludedVMFunction(const FString& ActionSearchText)
+{
+	FString LowerSearchText = ActionSearchText.ToLower();
+
+	// VMFunction patterns to exclude - these are low-level type-specific math operations
+	// that Blueprint developers rarely use directly (they use the promotable operators instead)
+	static const TArray<FString> ExcludedPatterns = {
+		// Type-specific math operations (use promotable operators like * instead)
+		TEXT("_floatfloat"),      // e.g., Multiply_FloatFloat
+		TEXT("_intint"),          // e.g., Add_IntInt
+		TEXT("_int64int64"),      // e.g., Multiply_Int64Int64
+		TEXT("_vectorfloat"),     // e.g., Multiply_VectorFloat
+		TEXT("_vectorvector"),    // e.g., Add_VectorVector
+		TEXT("_vectorint"),       // e.g., Multiply_VectorInt
+		TEXT("_rotatorrotator"),  // e.g., Add_RotatorRotator
+		TEXT("_transformtransform"), // Combined transforms
+		TEXT("_linearcolorfloat"), // Color math
+		TEXT("_linearcolorlinearcolor"),
+		TEXT("_bytebyte"),        // Byte math
+		TEXT("_matrix"),          // Matrix operations
+		TEXT("_quatquat"),        // Quaternion operations
+		TEXT("_timespantimespan"), // TimeSpan operations
+		TEXT("_datetimetimespan"), // DateTime operations
+	};
+
+	for (const FString& Pattern : ExcludedPatterns)
+	{
+		if (LowerSearchText.Contains(Pattern))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 FString UN2CPythonBridge::AddNodeToGraph(const FString& NodeName, const FString& ActionIdentifier, float LocationX, float LocationY)
@@ -1071,6 +1143,12 @@ FString UN2CPythonBridge::AddNodeToGraph(const FString& NodeName, const FString&
 
 	ResultObject->SetArrayField(TEXT("inputPins"), InputPinsArray);
 	ResultObject->SetArrayField(TEXT("outputPins"), OutputPinsArray);
+
+	// Add guidance for the next step - helps LLMs understand what to do after adding a node
+	TSharedPtr<FJsonObject> NextStepObject = MakeShareable(new FJsonObject);
+	NextStepObject->SetStringField(TEXT("function"), TEXT("connect_pins"));
+	NextStepObject->SetStringField(TEXT("description"), TEXT("Use nodetocode.connect_pins() with the nodeGuid and pinGuid values above to wire this node to other nodes in the graph."));
+	ResultObject->SetObjectField(TEXT("nextStep"), NextStepObject);
 
 	FString ResultJsonString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultJsonString);

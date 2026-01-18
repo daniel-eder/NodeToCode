@@ -32,7 +32,7 @@ FMcpToolDefinition FN2CMcpAddBlueprintNodeTool::GetDefinition() const
 {
     FMcpToolDefinition Definition(
         TEXT("add-bp-node-to-active-graph"),
-        TEXT("Adds a Blueprint node to the currently active graph. IMPORTANT: The search-blueprint-nodes tool MUST have been used before this tool in order to find the node and get its actionIdentifier from the spawnMetadata alongside its Name. The node's Name and actionIdentifier are required to spawn the exact correct variant of the node."),
+        TEXT("Adds a Blueprint node to the currently active graph. IMPORTANT: The search-blueprint-nodes tool MUST have been used before this tool in order to find the node and get its actionIdentifier from the spawnMetadata alongside its Name. The node's Name and actionIdentifier are required to spawn the exact correct variant of the node. NEXT STEP: After adding a node, use the 'connect-pins' tool to wire the node's pins to other nodes using the pinGuid values returned in inputPins and outputPins arrays."),
         TEXT("Blueprint Graph Editing")
     );
     
@@ -174,6 +174,12 @@ FMcpToolCallResult FN2CMcpAddBlueprintNodeTool::Execute(const TSharedPtr<FJsonOb
 
     ResultObject->SetArrayField(TEXT("inputPins"), InputPinsArray);
     ResultObject->SetArrayField(TEXT("outputPins"), OutputPinsArray);
+
+    // Add guidance for the next step
+    TSharedPtr<FJsonObject> NextStepObject = MakeShareable(new FJsonObject);
+    NextStepObject->SetStringField(TEXT("tool"), TEXT("connect-pins"));
+    NextStepObject->SetStringField(TEXT("description"), TEXT("Use the connect-pins tool with the nodeGuid and pinGuid values above to wire this node to other nodes in the graph."));
+    ResultObject->SetObjectField(TEXT("nextStep"), NextStepObject);
 
     FString ResultJson;
     TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultJson);

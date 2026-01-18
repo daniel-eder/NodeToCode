@@ -63,7 +63,25 @@ FMcpToolDefinition FN2CMcpSearchBlueprintNodesTool::GetDefinition() const
     MaxResultsProp->SetNumberField(TEXT("minimum"), 1);
     MaxResultsProp->SetNumberField(TEXT("maximum"), 100);
     Properties->SetObjectField(TEXT("maxResults"), MaxResultsProp);
-    
+
+    // category property
+    TSharedPtr<FJsonObject> CategoryProp = MakeShareable(new FJsonObject);
+    CategoryProp->SetStringField(TEXT("type"), TEXT("string"));
+    CategoryProp->SetStringField(TEXT("description"),
+        TEXT("Filter results by category. Common categories include: 'flowcontrol' (Branch, Sequence, etc.), ")
+        TEXT("'operators' (math operators like +, -, *, /), 'struct' (Make/Break struct nodes), ")
+        TEXT("'casting' (Cast nodes), 'math' (math functions). Case-insensitive partial match."));
+    Properties->SetObjectField(TEXT("category"), CategoryProp);
+
+    // excludeVMFunctions property
+    TSharedPtr<FJsonObject> ExcludeVMProp = MakeShareable(new FJsonObject);
+    ExcludeVMProp->SetStringField(TEXT("type"), TEXT("boolean"));
+    ExcludeVMProp->SetStringField(TEXT("description"),
+        TEXT("If true (default), excludes low-level VM math functions that are rarely used directly ")
+        TEXT("(e.g., type-specific math like 'Multiply_FloatFloat'). Set to false to include all results."));
+    ExcludeVMProp->SetBoolField(TEXT("default"), true);
+    Properties->SetObjectField(TEXT("excludeVMFunctions"), ExcludeVMProp);
+
     // blueprintContext property
     TSharedPtr<FJsonObject> ContextProp = MakeShareable(new FJsonObject);
     ContextProp->SetStringField(TEXT("type"), TEXT("object"));
@@ -113,16 +131,19 @@ FMcpToolCallResult FN2CMcpSearchBlueprintNodesTool::Execute(const TSharedPtr<FJs
         FString SearchTerm;
         bool bContextSensitive;
         int32 MaxResults;
-        TSharedPtr<FJsonObject> BlueprintContext; // Renamed from just Context
+        TSharedPtr<FJsonObject> BlueprintContext;
+        FString CategoryFilter;
+        bool bExcludeVMFunctions;
         FString ParseError;
-    
-        if (!ParseArguments(Arguments, SearchTerm, bContextSensitive, MaxResults, BlueprintContext, ParseError))
+
+        if (!ParseArguments(Arguments, SearchTerm, bContextSensitive, MaxResults, BlueprintContext, CategoryFilter, bExcludeVMFunctions, ParseError))
         {
             return FMcpToolCallResult::CreateErrorResult(ParseError);
         }
-    
-        FN2CLogger::Get().Log(FString::Printf(TEXT("Searching for Blueprint nodes: '%s' (ContextSensitive: %s, MaxResults: %d)"),
-            *SearchTerm, bContextSensitive ? TEXT("true") : TEXT("false"), MaxResults), EN2CLogSeverity::Info);
+
+        FN2CLogger::Get().Log(FString::Printf(TEXT("Searching for Blueprint nodes: '%s' (ContextSensitive: %s, MaxResults: %d, Category: '%s', ExcludeVM: %s)"),
+            *SearchTerm, bContextSensitive ? TEXT("true") : TEXT("false"), MaxResults,
+            CategoryFilter.IsEmpty() ? TEXT("any") : *CategoryFilter, bExcludeVMFunctions ? TEXT("true") : TEXT("false")), EN2CLogSeverity::Info);
     
         // Get context if needed
         UBlueprint* ContextBlueprint = nullptr;
@@ -182,13 +203,13 @@ FMcpToolCallResult FN2CMcpSearchBlueprintNodesTool::Execute(const TSharedPtr<FJs
         // Search through actions
         TArray<TSharedPtr<FJsonValue>> ResultNodes;
         int32 ResultCount = 0;
-    
+
         for (int32 i = 0; i < MenuBuilder.GetNumActions() && ResultCount < MaxResults; ++i)
         {
             FGraphActionListBuilderBase::ActionGroup Action = MenuBuilder.GetAction(i);
             const FString& ActionSearchText = Action.GetSearchTextForFirstAction();
             FString LowerSearchText = ActionSearchText.ToLower();
-        
+
             // Check if all search terms match (case-insensitive)
             bool bMatchesAllTerms = true;
             for (const FString& Term : LowerFilterTerms)
@@ -199,15 +220,29 @@ FMcpToolCallResult FN2CMcpSearchBlueprintNodesTool::Execute(const TSharedPtr<FJs
                     break;
                 }
             }
-        
-            if (bMatchesAllTerms)
+
+            if (!bMatchesAllTerms)
             {
-                TSharedPtr<FJsonObject> NodeJson = ConvertActionToJson(Action, bContextSensitive, ContextBlueprint, ContextGraph);
-                if (NodeJson.IsValid())
-                {
-                    ResultNodes.Add(MakeShareable(new FJsonValueObject(NodeJson)));
-                    ResultCount++;
-                }
+                continue;
+            }
+
+            // Apply category filter if specified
+            if (!CategoryFilter.IsEmpty() && !MatchesCategoryFilter(ActionSearchText, CategoryFilter))
+            {
+                continue;
+            }
+
+            // Apply VMFunction exclusion filter
+            if (bExcludeVMFunctions && IsExcludedVMFunction(ActionSearchText))
+            {
+                continue;
+            }
+
+            TSharedPtr<FJsonObject> NodeJson = ConvertActionToJson(Action, bContextSensitive, ContextBlueprint, ContextGraph);
+            if (NodeJson.IsValid())
+            {
+                ResultNodes.Add(MakeShareable(new FJsonValueObject(NodeJson)));
+                ResultCount++;
             }
         }
     
@@ -234,6 +269,8 @@ bool FN2CMcpSearchBlueprintNodesTool::ParseArguments(
     bool& OutContextSensitive,
     int32& OutMaxResults,
     TSharedPtr<FJsonObject>& OutBlueprintContext,
+    FString& OutCategoryFilter,
+    bool& bOutExcludeVMFunctions,
     FString& OutError)
 {
     FN2CMcpArgumentParser ArgParser(ArgumentsJsonObj);
@@ -242,14 +279,72 @@ bool FN2CMcpSearchBlueprintNodesTool::ParseArguments(
     {
         return false;
     }
-    
+
     OutContextSensitive = ArgParser.GetOptionalBool(TEXT("contextSensitive"), true);
     OutMaxResults = ArgParser.GetOptionalInt(TEXT("maxResults"), 20);
     OutMaxResults = FMath::Clamp(OutMaxResults, 1, 100);
-
     OutBlueprintContext = ArgParser.GetOptionalObject(TEXT("blueprintContext"));
-    
+    OutCategoryFilter = ArgParser.GetOptionalString(TEXT("category"), TEXT(""));
+    bOutExcludeVMFunctions = ArgParser.GetOptionalBool(TEXT("excludeVMFunctions"), true);
+
     return true;
+}
+
+bool FN2CMcpSearchBlueprintNodesTool::MatchesCategoryFilter(const FString& ActionSearchText, const FString& CategoryFilter)
+{
+    // Categories in the search text are enclosed in pipes, e.g., |utilities|flowcontrol
+    // We do a case-insensitive partial match on the category portion
+    FString LowerSearchText = ActionSearchText.ToLower();
+    FString LowerCategoryFilter = CategoryFilter.ToLower();
+
+    // Look for the category pattern between pipes
+    int32 PipeIndex = LowerSearchText.Find(TEXT("|"));
+    if (PipeIndex == INDEX_NONE)
+    {
+        return false;
+    }
+
+    // Extract everything after the first pipe (the category section)
+    FString CategorySection = LowerSearchText.Mid(PipeIndex);
+
+    // Check if the filter matches anywhere in the category section
+    return CategorySection.Contains(LowerCategoryFilter);
+}
+
+bool FN2CMcpSearchBlueprintNodesTool::IsExcludedVMFunction(const FString& ActionSearchText)
+{
+    FString LowerSearchText = ActionSearchText.ToLower();
+
+    // VMFunction patterns to exclude - these are low-level type-specific math operations
+    // that Blueprint developers rarely use directly (they use the promotable operators instead)
+    static const TArray<FString> ExcludedPatterns = {
+        // Type-specific math operations (use promotable operators like * instead)
+        TEXT("_floatfloat"),      // e.g., Multiply_FloatFloat
+        TEXT("_intint"),          // e.g., Add_IntInt
+        TEXT("_int64int64"),      // e.g., Multiply_Int64Int64
+        TEXT("_vectorfloat"),     // e.g., Multiply_VectorFloat
+        TEXT("_vectorvector"),    // e.g., Add_VectorVector
+        TEXT("_vectorint"),       // e.g., Multiply_VectorInt
+        TEXT("_rotatorrotator"),  // e.g., Add_RotatorRotator
+        TEXT("_transformtransform"), // Combined transforms
+        TEXT("_linearcolorfloat"), // Color math
+        TEXT("_linearcolorlinearcolor"),
+        TEXT("_bytebyte"),        // Byte math
+        TEXT("_matrix"),          // Matrix operations
+        TEXT("_quatquat"),        // Quaternion operations
+        TEXT("_timespantimespan"), // TimeSpan operations
+        TEXT("_datetimetimespan"), // DateTime operations
+    };
+
+    for (const FString& Pattern : ExcludedPatterns)
+    {
+        if (LowerSearchText.Contains(Pattern))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool FN2CMcpSearchBlueprintNodesTool::GetContextFromPaths(

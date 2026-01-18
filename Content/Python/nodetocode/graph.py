@@ -9,26 +9,32 @@ These functions enable programmatic Blueprint graph manipulation from Python:
 - Find/enumerate nodes in a graph
 - Create comment nodes for organization
 
+WORKFLOW - The typical pattern for building Blueprint logic:
+1. search_blueprint_nodes() - Find available nodes matching your query
+2. add_node_to_graph() - Add a node, returns nodeGuid and pinGuid values
+3. connect_pins() - Wire nodes together using the GUIDs from step 2
+
 Usage:
     import nodetocode as n2c
 
-    # Search for nodes
+    # Step 1: Search for nodes
     results = n2c.search_blueprint_nodes("Print String")
 
-    # Add a node to the focused graph
+    # Step 2: Add a node to the focused graph
     node = n2c.add_node_to_graph(
         results['data']['nodes'][0]['displayName'],
         results['data']['nodes'][0]['spawnMetadata']['actionIdentifier']
     )
 
-    # Find nodes in the graph
-    found = n2c.find_nodes_in_graph(["Print"])
-
-    # Connect pins between nodes
+    # Step 3: Connect pins between nodes (IMPORTANT: This is the next step after add_node_to_graph)
+    # Use the nodeGuid and pinGuid values returned from add_node_to_graph
     n2c.connect_pins([{
-        "from": {"nodeGuid": "...", "pinGuid": "..."},
+        "from": {"nodeGuid": node['data']['nodeGuid'], "pinGuid": "..."},
         "to": {"nodeGuid": "...", "pinGuid": "..."}
     }])
+
+    # Find existing nodes in the graph (use when you need GUIDs for existing nodes)
+    found = n2c.find_nodes_in_graph(["Print"])
 """
 
 import json
@@ -64,7 +70,9 @@ def _parse_bridge_result(json_str: str) -> Dict[str, Any]:
 def search_blueprint_nodes(
     search_term: str,
     context_sensitive: bool = True,
-    max_results: int = 20
+    max_results: int = 20,
+    category: str = "",
+    exclude_vm_functions: bool = True
 ) -> Dict[str, Any]:
     """
     Search for Blueprint nodes/actions matching a search term.
@@ -73,9 +81,17 @@ def search_blueprint_nodes(
     Use the returned actionIdentifier with add_node_to_graph() to spawn nodes.
 
     Args:
-        search_term: Text query to search for (e.g., "Print String", "Add")
+        search_term: Text query to search for (e.g., "Print String", "Branch")
         context_sensitive: If True, filters results based on focused Blueprint context
         max_results: Maximum number of results to return (1-100)
+        category: Optional category filter. Common categories:
+            - "flowcontrol" - Branch, Sequence, ForLoop, etc.
+            - "operators" - Math operators (+, -, *, /)
+            - "struct" - Make/Break struct nodes
+            - "casting" - Cast nodes
+            - "math" - Math functions
+        exclude_vm_functions: If True (default), excludes low-level VM math functions
+            like Multiply_FloatFloat that are rarely used directly
 
     Returns:
         {
@@ -98,6 +114,10 @@ def search_blueprint_nodes(
         }
 
     Example:
+        # Search for Branch in flow control category
+        results = search_blueprint_nodes("Branch", category="flowcontrol")
+
+        # Search for all print nodes
         results = search_blueprint_nodes("Print String")
         if results['success'] and results['data']['count'] > 0:
             node = results['data']['nodes'][0]
@@ -111,7 +131,9 @@ def search_blueprint_nodes(
         result = unreal.N2CPythonBridge.search_blueprint_nodes(
             search_term.strip(),
             context_sensitive,
-            max_results
+            max_results,
+            category,
+            exclude_vm_functions
         )
         return _parse_bridge_result(result)
     except Exception as e:
@@ -131,6 +153,9 @@ def add_node_to_graph(
     Use search_blueprint_nodes() first to get the actionIdentifier for the node.
     The response includes full pin information, allowing immediate connection
     without needing to call find_nodes_in_graph().
+
+    NEXT STEP: After adding a node, use connect_pins() to wire the node's pins
+    to other nodes using the nodeGuid and pinGuid values returned in this response.
 
     Args:
         node_name: Name of the node (used for action lookup)
@@ -154,7 +179,11 @@ def add_node_to_graph(
                 outputPins: [
                     {pinGuid: str, pinName: str, displayName: str, type: str},
                     ...
-                ]
+                ],
+                nextStep: {
+                    function: "connect_pins",
+                    description: str  # Guidance on using connect_pins()
+                }
             },
             error: str or None
         }
@@ -176,6 +205,12 @@ def add_node_to_graph(
             # Pin GUIDs are immediately available for connecting
             exec_pin = next(p for p in added['data']['outputPins'] if p['type'] == 'exec')
             print(f"Exec output pin: {exec_pin['pinGuid']}")
+
+            # NEXT STEP: Connect this node to others using connect_pins()
+            # connect_pins([{
+            #     "from": {"nodeGuid": added['data']['nodeGuid'], "pinGuid": exec_pin['pinGuid']},
+            #     "to": {"nodeGuid": "other_node_guid", "pinGuid": "other_pin_guid"}
+            # }])
     """
     if not node_name or not node_name.strip():
         return make_error_result("node_name cannot be empty")
