@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Nick McClure (Protospatial). All Rights Reserved.
 
 #include "LLM/N2CLLMPayloadBuilder.h"
+#include "LLM/N2CLLMModelRegistry.h"
 #include "Utils/N2CLogger.h"
 #include "Serialization/JsonSerializer.h"
 
@@ -10,11 +11,15 @@ void UN2CLLMPayloadBuilder::Initialize(const FString& InModelName)
     RootObject = MakeShared<FJsonObject>();
     MessagesArray.Empty();
     ModelName = InModelName;
-    
+
     // Set model name
     RootObject->SetStringField(TEXT("model"), ModelName);
-    
-    // Set default values
+
+    // Set default values. Model-specific defaults are available in FN2CLLMModelRegistry
+    // and can be queried via GetModelMetadataById(ModelName) if needed.
+    // For now, we use reasonable defaults that work for most models.
+    // Note: Reasoning models (o1, o3, o4, DeepSeek R1) typically need temperature=1.0
+    // but the Configure* methods handle model-specific adjustments.
     SetTemperature(0.0f);
     SetMaxTokens(16000);
 }
@@ -42,11 +47,12 @@ void UN2CLLMPayloadBuilder::SetTemperature(float Value)
             }
             break;
         case EN2CLLMProvider::OpenAI:
-            // OpenAI o1, o3, and o4 models don't support temperature
-            if (ModelName.StartsWith(TEXT("o1")) || ModelName.StartsWith(TEXT("o3")) || ModelName.StartsWith(TEXT("o4")))
+            // OpenAI o1, o3, o4, and GPT-5 models don't support custom temperature (only default 1.0)
+            if (ModelName.StartsWith(TEXT("o1")) || ModelName.StartsWith(TEXT("o3")) || ModelName.StartsWith(TEXT("o4")) ||
+                ModelName.StartsWith(TEXT("gpt-5")))
             {
-                // Skip setting temperature for o1 and o3 models
-                FN2CLogger::Get().Log(TEXT("Temperature parameter not supported for o1/o3 models, skipping"), EN2CLogSeverity::Debug);
+                // Skip setting temperature for these models
+                FN2CLogger::Get().Log(TEXT("Temperature parameter not supported for o1/o3/o4/gpt-5 models, skipping"), EN2CLogSeverity::Debug);
             }
             else
             {
@@ -99,8 +105,9 @@ void UN2CLLMPayloadBuilder::SetMaxTokens(int32 Value)
             }
             break;
         case EN2CLLMProvider::OpenAI:
-            // OpenAI o1, o3, and o4 models use max_completion_tokens instead of max_tokens
-            if (ModelName.StartsWith(TEXT("o1")) || ModelName.StartsWith(TEXT("o3")) || ModelName.StartsWith(TEXT("o4")))
+            // OpenAI o-series and GPT-5 models use max_completion_tokens instead of max_tokens
+            if (ModelName.StartsWith(TEXT("o1")) || ModelName.StartsWith(TEXT("o3")) || ModelName.StartsWith(TEXT("o4")) ||
+                ModelName.StartsWith(TEXT("gpt-5")))
             {
                 RootObject->SetNumberField(TEXT("max_completion_tokens"), Value);
             }
@@ -355,8 +362,9 @@ void UN2CLLMPayloadBuilder::ConfigureForOpenAI()
     // Clear messages array and recreate it
     MessagesArray.Empty();
     
-    // Remove temperature for o1, o3, o4 models as they don't support it
-    if (ModelName.StartsWith(TEXT("o1")) || ModelName.StartsWith(TEXT("o3")) || ModelName.StartsWith(TEXT("o4")))
+    // Remove temperature for o1, o3, o4, and GPT-5 models as they don't support custom temperature
+    if (ModelName.StartsWith(TEXT("o1")) || ModelName.StartsWith(TEXT("o3")) || ModelName.StartsWith(TEXT("o4")) ||
+        ModelName.StartsWith(TEXT("gpt-5")))
     {
         if (RootObject->HasField(TEXT("temperature")))
         {
@@ -376,7 +384,7 @@ void UN2CLLMPayloadBuilder::ConfigureForAnthropic()
 void UN2CLLMPayloadBuilder::ConfigureForGemini()
 {
     ProviderType = EN2CLLMProvider::Gemini;
-    
+
     // Create generationConfig object if it doesn't exist
     if (!RootObject->HasField(TEXT("generationConfig")))
     {
@@ -385,22 +393,30 @@ void UN2CLLMPayloadBuilder::ConfigureForGemini()
         GenConfigObj->SetNumberField(TEXT("topP"), 0.95);
         RootObject->SetObjectField(TEXT("generationConfig"), GenConfigObj);
     }
-    
+
     // Remove any root-level temperature that might have been set
     if (RootObject->HasField(TEXT("temperature")))
     {
         RootObject->RemoveField(TEXT("temperature"));
     }
-    
+
     // Remove any root-level max_tokens that might have been set
     if (RootObject->HasField(TEXT("max_tokens")))
     {
         RootObject->RemoveField(TEXT("max_tokens"));
     }
-    
+
     // Set temperature and maxOutputTokens in generationConfig
-    SetTemperature(0.0f);
-    SetMaxTokens(16000);
+    // Use model-specific defaults from registry if available
+    float DefaultTemp = 0.0f;
+    int32 DefaultMaxTokens = 16000;
+    if (const FN2CModelMetadata* Meta = FN2CLLMModelRegistry::Get().GetModelMetadataById(ModelName))
+    {
+        DefaultTemp = Meta->DefaultTemperature;
+        DefaultMaxTokens = Meta->DefaultMaxTokens;
+    }
+    SetTemperature(DefaultTemp);
+    SetMaxTokens(DefaultMaxTokens);
 }
 
 void UN2CLLMPayloadBuilder::ConfigureForDeepSeek()
@@ -471,6 +487,7 @@ FString UN2CLLMPayloadBuilder::Build()
 TSharedPtr<FJsonObject> UN2CLLMPayloadBuilder::GetN2CResponseSchema()
 {
     // Define the JSON schema for N2C translation responses
+    // Note: additionalProperties: false is required at all object levels for OpenAI's strict JSON schema mode
     const FString JsonSchema = TEXT(R"(
       {
         "type": "object",
@@ -504,8 +521,10 @@ TSharedPtr<FJsonObject> UN2CLLMPayloadBuilder::GetN2CResponseSchema()
                   },
                   "required": [
                     "graphDeclaration",
-                    "graphImplementation"
-                  ]
+                    "graphImplementation",
+                    "implementationNotes"
+                  ],
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -513,13 +532,15 @@ TSharedPtr<FJsonObject> UN2CLLMPayloadBuilder::GetN2CResponseSchema()
                 "graph_type",
                 "graph_class",
                 "code"
-              ]
+              ],
+              "additionalProperties": false
             }
           }
         },
         "required": [
           "graphs"
-        ]
+        ],
+        "additionalProperties": false
       }
     )");
     

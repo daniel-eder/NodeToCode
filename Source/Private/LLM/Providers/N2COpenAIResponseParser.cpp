@@ -22,8 +22,9 @@ bool UN2COpenAIResponseParser::ParseLLMResponse(
     }
 
     // Check for OpenAI error response
+    // Note: Responses API may include "error": null on success, so check if the field is actually an object
     FString ErrorMessage;
-    if (JsonObject->HasField(TEXT("error")))
+    if (JsonObject->HasTypedField<EJson::Object>(TEXT("error")))
     {
         if (HandleCommonErrorResponse(JsonObject, TEXT("error"), ErrorMessage))
         {
@@ -32,12 +33,27 @@ bool UN2COpenAIResponseParser::ParseLLMResponse(
         return false;
     }
 
-    // Extract message content from OpenAI format
+    // Extract message content - handle both Chat Completions and Responses API formats
     FString MessageContent;
-    if (!ExtractStandardMessageContent(JsonObject, TEXT("choices"), TEXT("message"), TEXT("content"), MessageContent))
+
+    // Check if this is a Responses API response (has "output" array instead of "choices")
+    if (JsonObject->HasField(TEXT("output")))
     {
-        FN2CLogger::Get().LogError(TEXT("Failed to extract message content from OpenAI response"), TEXT("OpenAIResponseParser"));
-        return false;
+        // Responses API format
+        if (!ExtractResponsesAPIContent(JsonObject, MessageContent))
+        {
+            FN2CLogger::Get().LogError(TEXT("Failed to extract message content from OpenAI Responses API response"), TEXT("OpenAIResponseParser"));
+            return false;
+        }
+    }
+    else
+    {
+        // Chat Completions API format
+        if (!ExtractStandardMessageContent(JsonObject, TEXT("choices"), TEXT("message"), TEXT("content"), MessageContent))
+        {
+            FN2CLogger::Get().LogError(TEXT("Failed to extract message content from OpenAI response"), TEXT("OpenAIResponseParser"));
+            return false;
+        }
     }
 
     // Extract usage information if available
@@ -48,7 +64,17 @@ bool UN2COpenAIResponseParser::ParseLLMResponse(
         int32 CompletionTokens = 0;
         UsageObject->TryGetNumberField(TEXT("prompt_tokens"), PromptTokens);
         UsageObject->TryGetNumberField(TEXT("completion_tokens"), CompletionTokens);
-        
+
+        // Responses API may use different field names
+        if (PromptTokens == 0)
+        {
+            UsageObject->TryGetNumberField(TEXT("input_tokens"), PromptTokens);
+        }
+        if (CompletionTokens == 0)
+        {
+            UsageObject->TryGetNumberField(TEXT("output_tokens"), CompletionTokens);
+        }
+
         OutResponse.Usage.InputTokens = PromptTokens;
         OutResponse.Usage.OutputTokens = CompletionTokens;
 
@@ -59,4 +85,73 @@ bool UN2COpenAIResponseParser::ParseLLMResponse(
 
     // Parse the extracted content as our expected JSON format
     return Super::ParseLLMResponse(MessageContent, OutResponse);
+}
+
+bool UN2COpenAIResponseParser::ExtractResponsesAPIContent(const TSharedPtr<FJsonObject>& JsonObject, FString& OutContent) const
+{
+    // Responses API format:
+    // {
+    //   "output": [
+    //     {
+    //       "type": "message",
+    //       "role": "assistant",
+    //       "content": [
+    //         { "type": "output_text", "text": "..." }
+    //       ]
+    //     }
+    //   ]
+    // }
+
+    const TArray<TSharedPtr<FJsonValue>>* OutputArray;
+    if (!JsonObject->TryGetArrayField(TEXT("output"), OutputArray) || OutputArray->Num() == 0)
+    {
+        return false;
+    }
+
+    // Find the message output item
+    for (const TSharedPtr<FJsonValue>& OutputValue : *OutputArray)
+    {
+        const TSharedPtr<FJsonObject>* OutputItem;
+        if (!OutputValue->TryGetObject(OutputItem) || !OutputItem->IsValid())
+        {
+            continue;
+        }
+
+        FString ItemType;
+        if (!(*OutputItem)->TryGetStringField(TEXT("type"), ItemType) || ItemType != TEXT("message"))
+        {
+            continue;
+        }
+
+        // Get content array
+        const TArray<TSharedPtr<FJsonValue>>* ContentArray;
+        if (!(*OutputItem)->TryGetArrayField(TEXT("content"), ContentArray))
+        {
+            continue;
+        }
+
+        // Find text content
+        for (const TSharedPtr<FJsonValue>& ContentValue : *ContentArray)
+        {
+            const TSharedPtr<FJsonObject>* ContentItem;
+            if (!ContentValue->TryGetObject(ContentItem) || !ContentItem->IsValid())
+            {
+                continue;
+            }
+
+            FString ContentType;
+            (*ContentItem)->TryGetStringField(TEXT("type"), ContentType);
+
+            // Handle both "output_text" and "text" types
+            if (ContentType == TEXT("output_text") || ContentType == TEXT("text"))
+            {
+                if ((*ContentItem)->TryGetStringField(TEXT("text"), OutContent))
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
 }

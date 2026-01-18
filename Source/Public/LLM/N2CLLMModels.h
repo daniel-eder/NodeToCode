@@ -12,13 +12,22 @@
 UENUM(BlueprintType)
 enum class EN2COpenAIModel : uint8
 {
+    // GPT-5.2 family (December 2025)
+    GPT_5_2                 UMETA(DisplayName = "GPT-5.2", Value = "gpt-5.2"),
+    GPT_5_2_Pro             UMETA(DisplayName = "GPT-5.2 Pro", Value = "gpt-5.2-pro"),
+    // GPT-5 family (August 2025)
+    GPT_5                   UMETA(DisplayName = "GPT-5", Value = "gpt-5"),
+    GPT_5_Mini              UMETA(DisplayName = "GPT-5 Mini", Value = "gpt-5-mini"),
+    GPT_5_Nano              UMETA(DisplayName = "GPT-5 Nano", Value = "gpt-5-nano"),
+    // o-series reasoning models
     GPT_o4_mini             UMETA(DisplayName = "o4 Mini", Value = "o4-mini"),
-    GPT_4_1                 UMETA(DisplayName = "GPT-4.1", Value = "gpt-4.1"),
     GPT_o3                  UMETA(DisplayName = "o3", Value = "o3"),
     GPT_o3_mini             UMETA(DisplayName = "o3 Mini", Value = "o3-mini"),
     GPT_o1                  UMETA(DisplayName = "o1", Value = "o1"),
     GPT_o1_Preview          UMETA(DisplayName = "o1 Preview", Value = "o1-preview-2024-09-12"),
     GPT_o1_Mini             UMETA(DisplayName = "o1 Mini", Value = "o1-mini-2024-09-12"),
+    // GPT-4 family
+    GPT_4_1                 UMETA(DisplayName = "GPT-4.1", Value = "gpt-4.1"),
     GPT4o_2024_08_06        UMETA(DisplayName = "GPT-4o", Value = "gpt-4o-2024-08-06"),
     GPT4o_Mini_2024_07_18   UMETA(DisplayName = "GPT-4o Mini", Value = "gpt-4o-mini-2024-07-18"),
 };
@@ -77,26 +86,7 @@ struct FN2CLLMModelUtils
     static FN2CDeepSeekPricing GetDeepSeekPricing(EN2CDeepSeekModel Model);
     static FN2CGeminiPricing GetGeminiPricing(EN2CGeminiModel Model);
 
-    /** System prompt support checks */
-    static bool SupportsSystemPrompts(EN2COpenAIModel Model)
-    {
-        switch (Model)
-        {
-            case EN2COpenAIModel::GPT_o1_Preview:
-            case EN2COpenAIModel::GPT_o1_Mini:
-            case EN2COpenAIModel::GPT_o1:
-                return false; // o1 model does not support system prompts, but o3, o4, and later models support system (aka developer) prompts.
-            default:
-                return true;
-        }
-    }
-
-    static bool SupportsSystemPrompts(EN2CAnthropicModel Model) { return true; }  // All Claude models support system prompts
-
-private:
-    /** Static pricing maps */
-    static const TMap<EN2COpenAIModel, FN2COpenAIPricing> OpenAIPricing;
-    static const TMap<EN2CAnthropicModel, FN2CAnthropicPricing> AnthropicPricing;
-    static const TMap<EN2CDeepSeekModel, FN2CDeepSeekPricing> DeepSeekPricing;
-    static const TMap<EN2CGeminiModel, FN2CGeminiPricing> GeminiPricing;
+    /** System prompt support checks - delegates to FN2CLLMModelRegistry */
+    static bool SupportsSystemPrompts(EN2COpenAIModel Model);
+    static bool SupportsSystemPrompts(EN2CAnthropicModel Model);
 };
