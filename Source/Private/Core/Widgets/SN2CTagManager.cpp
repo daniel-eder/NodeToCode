@@ -3,6 +3,7 @@
 #include "Core/Widgets/SN2CTagManager.h"
 #include "Core/Widgets/SN2CTagCategoryTree.h"
 #include "Core/Widgets/SN2CTaggedGraphsList.h"
+#include "Core/Widgets/SN2CContextWindowVisualizer.h"
 #include "Core/N2CTagManager.h"
 #include "Core/N2CSettings.h"
 #include "Widgets/Layout/SBorder.h"
@@ -90,6 +91,17 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 				.OnSingleTranslateRequested(FSimpleDelegate::CreateSP(this, &SN2CTagManager::HandleSingleTranslateRequested))
 				.OnSingleJsonExportRequested(FSimpleDelegate::CreateSP(this, &SN2CTagManager::HandleSingleJsonExportRequested))
 				.OnViewTranslationRequested(FSimpleDelegate::CreateSP(this, &SN2CTagManager::HandleViewTranslationRequested))
+			]
+		]
+		// Context Window Visualizer (shows token usage estimate)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(4.0f)
+		[
+			SNew(SBox)
+			.Visibility(InArgs._ShowActionBar ? EVisibility::Visible : EVisibility::Collapsed)
+			[
+				SAssignNew(ContextVisualizer, SN2CContextWindowVisualizer)
 			]
 		]
 		// Actions bar (optional)
@@ -470,6 +482,13 @@ void SN2CTagManager::HandleTreeSelectionChanged()
 void SN2CTagManager::HandleListSelectionChanged()
 {
 	UpdateSelectionDisplay();
+
+	// Update context visualizer with new selection
+	if (ContextVisualizer.IsValid())
+	{
+		ContextVisualizer->UpdateForSelection(GetSelectedGraphs());
+	}
+
 	OnSelectionChangedDelegate.ExecuteIfBound();
 }
 
@@ -623,6 +642,12 @@ void SN2CTagManager::UpdateGraphsList()
 
 	GraphsList->SetGraphs(TagInfos);
 	UpdateSelectionDisplay();
+
+	// Clear context visualizer when graph list changes (selection is cleared)
+	if (ContextVisualizer.IsValid())
+	{
+		ContextVisualizer->UpdateForSelection(TArray<FN2CTagInfo>());
+	}
 }
 
 void SN2CTagManager::UpdateSelectionDisplay()

@@ -2,6 +2,7 @@
 
 #include "Core/N2CSettings.h"
 #include "Core/N2CUserSecrets.h"
+#include "Core/Services/N2CTokenEstimationService.h"
 #include "Auth/N2CAnthropicOAuthTokenManager.h"
 #include "Auth/N2CGoogleOAuthTokenManager.h"
 #include "Code Editor/Widgets/SN2CCodeEditor.h"
@@ -262,7 +263,19 @@ void UN2CSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
         {
             FN2CLogger::Get().SetMinSeverity(MinSeverity);
         }
-        
+
+        // Notify token estimation service when provider or model changes
+        if (PropertyName == GET_MEMBER_NAME_CHECKED(UN2CSettings, Provider) ||
+            PropertyName == GET_MEMBER_NAME_CHECKED(UN2CSettings, OpenAI_Model) ||
+            PropertyName == GET_MEMBER_NAME_CHECKED(UN2CSettings, AnthropicModel) ||
+            PropertyName == GET_MEMBER_NAME_CHECKED(UN2CSettings, Gemini_Model) ||
+            PropertyName == GET_MEMBER_NAME_CHECKED(UN2CSettings, DeepSeekModel) ||
+            PropertyName == GET_MEMBER_NAME_CHECKED(UN2CSettings, OllamaModel) ||
+            PropertyName == GET_MEMBER_NAME_CHECKED(UN2CSettings, LMStudioModel))
+        {
+            NotifyModelSettingsChanged();
+        }
+
         // Show restart notification when bEnableDynamicToolDiscovery changes
         if (PropertyName == GET_MEMBER_NAME_CHECKED(UN2CSettings, bEnableDynamicToolDiscovery))
         {
@@ -491,4 +504,11 @@ void UN2CSettings::RefreshGeminiOAuthStatus()
     {
         GeminiOAuthConnectionStatus = TEXT("Not connected");
     }
+}
+
+void UN2CSettings::NotifyModelSettingsChanged()
+{
+    FN2CTokenEstimationService& Service = FN2CTokenEstimationService::Get();
+    Service.RefreshModelInfo();
+    Service.OnModelChanged.Broadcast();
 }

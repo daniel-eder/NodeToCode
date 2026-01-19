@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Nick McClure (Protospatial). All Rights Reserved.
 
 #include "Core/Widgets/SN2CGraphListRow.h"
+#include "Core/Widgets/SN2CCircularProgressBar.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
@@ -21,6 +22,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 	OnJsonExportClickedDelegate = InArgs._OnJsonExportClicked;
 	OnViewTranslationClickedDelegate = InArgs._OnViewTranslationClicked;
 	OnDoubleClickedDelegate = InArgs._OnDoubleClicked;
+	OnRefreshClickedDelegate = InArgs._OnRefreshClicked;
 
 	if (!Item.IsValid())
 	{
@@ -82,6 +84,56 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 					.Font(FAppStyle::GetFontStyle("SmallFont"))
 					.ColorAndOpacity(FLinearColor(0.31f, 0.76f, 1.0f, 1.0f)) // Blueprint blue
 					.ToolTipText(FText::FromString(Item->TagInfo.BlueprintPath))
+				]
+
+				// Context column - fixed width with circular progress, tokens, and cost
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(4.0f, 0.0f)
+				[
+					SNew(SBox)
+					.WidthOverride(120.0f)
+					[
+						SNew(SHorizontalBox)
+
+						// Circular progress bar (clickable for refresh)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+						[
+							SNew(SN2CCircularProgressBar)
+							.Percent(this, &SN2CGraphListRow::GetContextUsagePercent)
+							.Radius(7.0f)
+							.Thickness(2.5f)
+							.OnClicked(this, &SN2CGraphListRow::HandleRefreshClicked)
+							.ToolTipText(LOCTEXT("RefreshTooltip", "Click to refresh estimate"))
+						]
+
+						// Token count
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+						[
+							SNew(STextBlock)
+							.Text(this, &SN2CGraphListRow::GetTokensText)
+							.Font(FAppStyle::GetFontStyle("TinyFont"))
+							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+						]
+
+						// Cost
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(this, &SN2CGraphListRow::GetCostText)
+							.Font(FAppStyle::GetFontStyle("TinyFont"))
+							.ColorAndOpacity(FLinearColor::FromSRGBColor(FColor(78, 201, 176))) // Green for cost
+						]
+					]
 				]
 			]
 		]
@@ -300,6 +352,42 @@ FText SN2CGraphListRow::GetViewButtonTooltip() const
 		return LOCTEXT("ViewTranslationTooltipEnabled", "View translation");
 	}
 	return LOCTEXT("ViewTranslationTooltipDisabled", "No translation available");
+}
+
+void SN2CGraphListRow::HandleRefreshClicked()
+{
+	if (Item.IsValid())
+	{
+		UE_LOG(LogNodeToCode, Log, TEXT("[SN2CGraphListRow] Refresh clicked for graph: %s"), *Item->TagInfo.GraphName);
+		OnRefreshClickedDelegate.ExecuteIfBound(Item);
+	}
+}
+
+float SN2CGraphListRow::GetContextUsagePercent() const
+{
+	if (Item.IsValid() && Item->bTokenEstimateValid)
+	{
+		return Item->ContextUsagePercent;
+	}
+	return 0.0f;
+}
+
+FText SN2CGraphListRow::GetTokensText() const
+{
+	if (Item.IsValid())
+	{
+		return FText::FromString(Item->GetFormattedTokens());
+	}
+	return FText::FromString(TEXT("-"));
+}
+
+FText SN2CGraphListRow::GetCostText() const
+{
+	if (Item.IsValid())
+	{
+		return FText::FromString(Item->GetFormattedCost());
+	}
+	return FText::FromString(TEXT("-"));
 }
 
 #undef LOCTEXT_NAMESPACE

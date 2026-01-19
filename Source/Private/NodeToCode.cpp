@@ -22,6 +22,7 @@
 #include "Auth/N2CAnthropicOAuthTokenManager.h"
 #include "Auth/N2CGoogleOAuthTokenManager.h"
 #include "HAL/IConsoleManager.h"
+#include "Core/Services/N2CTokenEstimationService.h"
 #if WITH_EDITOR
 #include "UnrealEdMisc.h"
 #endif
@@ -74,7 +75,11 @@ void FNodeToCodeModule::StartupModule()
     // Initialize editor integration
     FN2CEditorIntegration::Get().Initialize();
     FN2CLogger::Get().Log(TEXT("Editor integration initialized"), EN2CLogSeverity::Debug);
-    
+
+    // Initialize token estimation service
+    FN2CTokenEstimationService::Get().Initialize();
+    FN2CLogger::Get().Log(TEXT("Token estimation service initialized"), EN2CLogSeverity::Debug);
+
     // Register widget factory
     FN2CCodeEditorWidgetFactory::Register();
     FN2CLogger::Get().Log(TEXT("Widget factory registered"), EN2CLogSeverity::Debug);
@@ -356,6 +361,10 @@ void FNodeToCodeModule::ShutdownModule()
     // Unregister menu extensions
     UToolMenus::UnRegisterStartupCallback(this);
     UToolMenus::UnregisterOwner(this);
+
+    // Shutdown token estimation service
+    FN2CTokenEstimationService::Get().Shutdown();
+    FN2CLogger::Get().Log(TEXT("Token estimation service shutdown"), EN2CLogSeverity::Debug);
 
     // Shutdown editor integration
     FN2CEditorIntegration::Get().Shutdown();

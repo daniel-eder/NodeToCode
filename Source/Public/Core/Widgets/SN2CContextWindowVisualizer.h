@@ -1,0 +1,121 @@
+// Copyright (c) 2025 Nick McClure (Protospatial). All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Input/SComboBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "BlueprintLibraries/N2CTagBlueprintLibrary.h"
+#include "LLM/N2CLLMTypes.h"
+
+class STextBlock;
+class SButton;
+
+/**
+ * Widget that displays context window summary information.
+ * Shows model name, total tokens for selection, and estimated batch cost.
+ *
+ * Note: Per-graph context visualization is now handled by SN2CGraphListRow
+ * with circular progress bars. This widget provides the batch summary.
+ */
+class NODETOCODE_API SN2CContextWindowVisualizer : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SN2CContextWindowVisualizer)
+	{}
+	SLATE_END_ARGS()
+
+	/** Constructs this widget */
+	void Construct(const FArguments& InArgs);
+
+	/** Destructor - cleans up delegate bindings */
+	virtual ~SN2CContextWindowVisualizer();
+
+	/**
+	 * Update the display based on selected graphs
+	 * @param SelectedGraphs Array of selected graph tag infos
+	 */
+	void UpdateForSelection(const TArray<FN2CTagInfo>& SelectedGraphs);
+
+private:
+	/** Get total token count display text */
+	FText GetTokenCountText() const;
+
+	/** Get estimated cost display text */
+	FText GetEstimatedCostText() const;
+
+	/** Get model name display text */
+	FText GetModelNameText() const;
+
+	/** Handle model changes from the token estimation service */
+	void OnModelChanged();
+
+	// ==================== Provider/Model Selection ====================
+
+	/** Populate the provider options array */
+	void PopulateProviderOptions();
+
+	/** Populate the model options array based on current provider */
+	void PopulateModelOptions();
+
+	/** Rebuild the model selection widget (dropdown vs text input) */
+	void RebuildModelSelectionWidget();
+
+	/** Handle provider selection change */
+	void OnProviderSelectionChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
+
+	/** Handle model selection change (dropdown) */
+	void OnModelSelectionChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
+
+	/** Handle model text committed (text input for local providers) */
+	void OnLocalModelTextCommitted(const FText& NewText, ETextCommit::Type CommitType);
+
+	/** Generate widget for provider dropdown item */
+	TSharedRef<SWidget> GenerateProviderWidget(TSharedPtr<FString> Item);
+
+	/** Generate widget for model dropdown item */
+	TSharedRef<SWidget> GenerateModelWidget(TSharedPtr<FString> Item);
+
+	/** Get current provider display text */
+	FText GetCurrentProviderText() const;
+
+	/** Get current model display text for local providers */
+	FText GetLocalModelText() const;
+
+	/** Check if current provider is a local provider (Ollama/LM Studio) */
+	bool IsLocalProvider() const;
+
+	/** Handle settings button click */
+	FReply OnSettingsClicked();
+
+	/** Save settings to config file */
+	void SaveSettings();
+
+	// UI Elements
+	TSharedPtr<STextBlock> ModelNameText;
+	TSharedPtr<STextBlock> TokenCountTextBlock;
+	TSharedPtr<STextBlock> CostTextBlock;
+
+	// Provider/Model selection widgets
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> ProviderComboBox;
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> ModelComboBox;
+	TSharedPtr<SEditableTextBox> LocalModelTextBox;
+	TSharedPtr<SBox> ModelSelectionContainer;
+
+	// Provider/Model option arrays
+	TArray<TSharedPtr<FString>> ProviderOptions;
+	TArray<TSharedPtr<FString>> ModelOptions;
+
+	// Cached state for display
+	int32 TotalTokens = 0;
+	float TotalCost = 0.0f;
+	int32 SelectedGraphCount = 0;
+
+	// Cached provider for detecting changes
+	EN2CLLMProvider CachedProvider = EN2CLLMProvider::Anthropic;
+
+	// Delegate handle for model changes
+	FDelegateHandle ModelChangedHandle;
+};

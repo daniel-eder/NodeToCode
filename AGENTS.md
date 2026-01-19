@@ -20,7 +20,23 @@ This is where source files for Unreal Engine 5 can be found and searched through
 
 ## TESTING COMPILATION
 
-When testing code changes, please run build.sh (if on Mac) or build.ps1 (if on Windows) found in the root of the NodeToCode plugin folder (./build.sh or .\build.ps1). This will build the project and output timestamped build logs in the BuildLogs folder.
+The build scripts support UE 5.4, 5.5, 5.6, and 5.7 with auto-detection of installations.
+
+**Windows (build.ps1):**
+```powershell
+.\build.ps1 -UEVersion 5.5       # Build for specific version
+.\build.ps1 -All                  # Build all detected versions
+.\build.ps1 -WhatIf               # Preview detected UE installations
+```
+
+**Mac/Linux (build.sh):**
+```bash
+./build.sh -v 5.5                 # Build for specific version
+./build.sh --all                  # Build all detected versions
+./build.sh --whatif               # Preview detected UE installations
+```
+
+Logs are saved to `BuildLogs/Build_<version>_<timestamp>.log`. Running without arguments shows help and detected UE versions.
 
 # CRITICAL - END
 

@@ -2,6 +2,7 @@
 
 #include "Core/Widgets/SN2CTaggedGraphsList.h"
 #include "Core/N2CGraphStateManager.h"
+#include "Core/Services/N2CTokenEstimationService.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
@@ -17,6 +18,7 @@
 const FName SN2CTaggedGraphsList::Column_Checkbox = TEXT("Checkbox");
 const FName SN2CTaggedGraphsList::Column_GraphName = TEXT("GraphName");
 const FName SN2CTaggedGraphsList::Column_Blueprint = TEXT("Blueprint");
+const FName SN2CTaggedGraphsList::Column_Context = TEXT("Context");
 
 void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 {
@@ -25,6 +27,12 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 	OnSingleTranslateRequestedDelegate = InArgs._OnSingleTranslateRequested;
 	OnSingleJsonExportRequestedDelegate = InArgs._OnSingleJsonExportRequested;
 	OnViewTranslationRequestedDelegate = InArgs._OnViewTranslationRequested;
+	OnRefreshTokensRequestedDelegate = InArgs._OnRefreshTokensRequested;
+
+	// Subscribe to token estimation service events
+	FN2CTokenEstimationService& TokenService = FN2CTokenEstimationService::Get();
+	ModelChangedHandle = TokenService.OnModelChanged.AddSP(this, &SN2CTaggedGraphsList::OnModelChanged);
+	CacheInvalidatedHandle = TokenService.OnCacheInvalidated.AddSP(this, &SN2CTaggedGraphsList::OnCacheInvalidated);
 
 	// Create header row
 	// Note: We use a button wrapper for the select-all checkbox because SHeaderRow
@@ -53,7 +61,10 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 		.FillWidth(1.0f)
 		+ SHeaderRow::Column(Column_Blueprint)
 		.DefaultLabel(LOCTEXT("BlueprintHeader", "Blueprint"))
-		.FillWidth(1.0f);
+		.FillWidth(1.0f)
+		+ SHeaderRow::Column(Column_Context)
+		.DefaultLabel(LOCTEXT("ContextHeader", "Context"))
+		.FixedWidth(120.0f);
 
 	ChildSlot
 	[
@@ -122,6 +133,9 @@ void SN2CTaggedGraphsList::SetGraphs(const TArray<FN2CTagInfo>& InTagInfos)
 	});
 
 	ApplyFilters();
+
+	// Refresh token estimates for all items
+	RefreshTokenEstimates();
 }
 
 void SN2CTaggedGraphsList::SetHeaderPath(const FString& InCategory, const FString& InTag)
@@ -232,6 +246,7 @@ TSharedRef<ITableRow> SN2CTaggedGraphsList::OnGenerateRow(TSharedPtr<FN2CGraphLi
 			.OnJsonExportClicked(this, &SN2CTaggedGraphsList::HandleRowJsonExportClicked)
 			.OnViewTranslationClicked(this, &SN2CTaggedGraphsList::HandleRowViewTranslationClicked)
 			.OnDoubleClicked(this, &SN2CTaggedGraphsList::HandleRowDoubleClicked)
+			.OnRefreshClicked(this, &SN2CTaggedGraphsList::HandleRowRefreshClicked)
 		];
 }
 
@@ -395,6 +410,90 @@ void SN2CTaggedGraphsList::HandleRowViewTranslationClicked(TSharedPtr<FN2CGraphL
 		UE_LOG(LogNodeToCode, Log, TEXT("[SN2CTaggedGraphsList] View translation clicked for graph: %s"), *Item->TagInfo.GraphName);
 		LastViewTranslationRequestedGraph = Item->TagInfo;
 		OnViewTranslationRequestedDelegate.ExecuteIfBound();
+	}
+}
+
+void SN2CTaggedGraphsList::HandleRowRefreshClicked(TSharedPtr<FN2CGraphListItem> Item)
+{
+	if (Item.IsValid())
+	{
+		UE_LOG(LogNodeToCode, Log, TEXT("[SN2CTaggedGraphsList] Refresh clicked for graph: %s"), *Item->TagInfo.GraphName);
+
+		// Invalidate this specific item's cache and refresh
+		FN2CTokenEstimationService::Get().InvalidateCache(Item->TagInfo.GraphGuid);
+		RefreshTokenEstimate(Item);
+
+		// Notify external handlers if bound
+		OnRefreshTokensRequestedDelegate.ExecuteIfBound(Item);
+	}
+}
+
+SN2CTaggedGraphsList::~SN2CTaggedGraphsList()
+{
+	// Unsubscribe from token estimation service events
+	if (ModelChangedHandle.IsValid())
+	{
+		FN2CTokenEstimationService::Get().OnModelChanged.Remove(ModelChangedHandle);
+	}
+	if (CacheInvalidatedHandle.IsValid())
+	{
+		FN2CTokenEstimationService::Get().OnCacheInvalidated.Remove(CacheInvalidatedHandle);
+	}
+}
+
+void SN2CTaggedGraphsList::OnModelChanged()
+{
+	// Model changed, refresh all token estimates
+	RefreshTokenEstimates();
+}
+
+void SN2CTaggedGraphsList::OnCacheInvalidated()
+{
+	// Cache was invalidated, refresh all token estimates
+	RefreshTokenEstimates();
+}
+
+void SN2CTaggedGraphsList::RefreshTokenEstimates()
+{
+	FN2CTokenEstimationService& Service = FN2CTokenEstimationService::Get();
+	int32 UsableContext = Service.GetUsableContextWindow();
+
+	for (auto& Item : AllItems)
+	{
+		Item->EstimatedTokens = Service.GetTokenEstimate(Item->TagInfo);
+		Item->EstimatedCost = Service.CalculateCost(Item->EstimatedTokens);
+		Item->ContextUsagePercent = UsableContext > 0
+			? FMath::Clamp(static_cast<float>(Item->EstimatedTokens) / static_cast<float>(UsableContext), 0.0f, 1.0f)
+			: 0.0f;
+		Item->bTokenEstimateValid = true;
+	}
+
+	if (ListView.IsValid())
+	{
+		ListView->RequestListRefresh();
+	}
+}
+
+void SN2CTaggedGraphsList::RefreshTokenEstimate(TSharedPtr<FN2CGraphListItem> Item)
+{
+	if (!Item.IsValid())
+	{
+		return;
+	}
+
+	FN2CTokenEstimationService& Service = FN2CTokenEstimationService::Get();
+	int32 UsableContext = Service.GetUsableContextWindow();
+
+	Item->EstimatedTokens = Service.GetTokenEstimate(Item->TagInfo);
+	Item->EstimatedCost = Service.CalculateCost(Item->EstimatedTokens);
+	Item->ContextUsagePercent = UsableContext > 0
+		? FMath::Clamp(static_cast<float>(Item->EstimatedTokens) / static_cast<float>(UsableContext), 0.0f, 1.0f)
+		: 0.0f;
+	Item->bTokenEstimateValid = true;
+
+	if (ListView.IsValid())
+	{
+		ListView->RequestListRefresh();
 	}
 }
 

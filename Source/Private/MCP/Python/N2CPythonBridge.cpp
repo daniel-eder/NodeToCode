@@ -1928,8 +1928,8 @@ FString UN2CPythonBridge::CreateCommentNode(const FString& NodeGuidsJson, const 
 		"\"commentGuid\": \"%s\","
 		"\"commentText\": \"%s\","
 		"\"includedNodeCount\": %d,"
-		"\"position\": {\"x\": %.2f, \"y\": %.2f},"
-		"\"size\": {\"width\": %.2f, \"height\": %.2f}"
+		"\"position\": {\"x\": %d, \"y\": %d},"
+		"\"size\": {\"width\": %d, \"height\": %d}"
 		"}"
 	),
 		*CommentNode->NodeGuid.ToString(),

@@ -12,6 +12,7 @@ DECLARE_DELEGATE_OneParam(FOnRowTranslateClicked, TSharedPtr<FN2CGraphListItem>)
 DECLARE_DELEGATE_OneParam(FOnRowJsonExportClicked, TSharedPtr<FN2CGraphListItem>);
 DECLARE_DELEGATE_OneParam(FOnRowViewTranslationClicked, TSharedPtr<FN2CGraphListItem>);
 DECLARE_DELEGATE_OneParam(FOnRowDoubleClicked, TSharedPtr<FN2CGraphListItem>);
+DECLARE_DELEGATE_OneParam(FOnRowRefreshClicked, TSharedPtr<FN2CGraphListItem>);
 
 /**
  * Custom row widget for the tagged graphs list
@@ -33,6 +34,8 @@ public:
 		SLATE_EVENT(FOnRowViewTranslationClicked, OnViewTranslationClicked)
 		/** Called when the row is double-clicked */
 		SLATE_EVENT(FOnRowDoubleClicked, OnDoubleClicked)
+		/** Called when the refresh button is clicked on the context column */
+		SLATE_EVENT(FOnRowRefreshClicked, OnRefreshClicked)
 	SLATE_END_ARGS()
 
 	/** Constructs this widget */
@@ -62,12 +65,14 @@ private:
 	FOnRowJsonExportClicked OnJsonExportClickedDelegate;
 	FOnRowViewTranslationClicked OnViewTranslationClickedDelegate;
 	FOnRowDoubleClicked OnDoubleClickedDelegate;
+	FOnRowRefreshClicked OnRefreshClickedDelegate;
 
 	// Event handlers
 	void OnCheckboxStateChanged(ECheckBoxState NewState);
 	FReply HandleTranslateClicked();
 	FReply HandleJsonExportClicked();
 	FReply HandleViewTranslationClicked();
+	void HandleRefreshClicked();
 
 	// Visual state helpers (called via TAttribute binding)
 	FSlateColor GetBackgroundColor() const;
@@ -76,4 +81,9 @@ private:
 	ECheckBoxState GetCheckboxState() const;
 	bool IsViewButtonEnabled() const;
 	FText GetViewButtonTooltip() const;
+
+	// Context column helpers
+	float GetContextUsagePercent() const;
+	FText GetTokensText() const;
+	FText GetCostText() const;
 };

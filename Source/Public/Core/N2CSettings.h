@@ -547,6 +547,9 @@ public:
     /** Refresh the Gemini OAuth connection status display */
     void RefreshGeminiOAuthStatus();
 
+    /** Notify that model settings have changed - call this to update token estimation UI */
+    void NotifyModelSettingsChanged();
+
     /** Style themes for C++ code */
     UPROPERTY(Config, EditAnywhere, Category = "Node to Code | Theming | Language Specific Themes",
         meta=(DisplayName="C++ Themes"))

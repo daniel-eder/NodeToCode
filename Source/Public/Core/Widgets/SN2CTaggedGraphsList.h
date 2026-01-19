@@ -9,6 +9,9 @@
 #include "TagManager/Models/N2CTagManagerTypes.h"
 #include "Core/Widgets/SN2CGraphListRow.h"
 
+// Delegate for when a row's refresh button is clicked
+DECLARE_DELEGATE_OneParam(FOnRowRefreshClicked, TSharedPtr<FN2CGraphListItem>);
+
 /**
  * Slate widget for displaying tagged graphs in a list/table view
  */
@@ -27,13 +30,24 @@ public:
 		SLATE_EVENT(FSimpleDelegate, OnSingleJsonExportRequested)
 		/** Called when view translation button is clicked on a single graph */
 		SLATE_EVENT(FSimpleDelegate, OnViewTranslationRequested)
+		/** Called when refresh button is clicked on a single graph row */
+		SLATE_EVENT(FOnRowRefreshClicked, OnRefreshTokensRequested)
 	SLATE_END_ARGS()
 
 	/** Constructs this widget */
 	void Construct(const FArguments& InArgs);
 
+	/** Destructor - cleans up delegate bindings */
+	virtual ~SN2CTaggedGraphsList();
+
 	/** Set the graphs to display */
 	void SetGraphs(const TArray<FN2CTagInfo>& InTagInfos);
+
+	/** Refresh token estimates for all items using the token estimation service */
+	void RefreshTokenEstimates();
+
+	/** Refresh token estimate for a specific item */
+	void RefreshTokenEstimate(TSharedPtr<FN2CGraphListItem> Item);
 
 	/** Set the header path display (e.g., "Category > Tag") */
 	void SetHeaderPath(const FString& InCategory, const FString& InTag);
@@ -80,7 +94,15 @@ public:
 	/** Delegate fired when view translation is requested for a single graph */
 	FSimpleDelegate OnViewTranslationRequestedDelegate;
 
+	/** Delegate fired when refresh tokens is requested for a single graph */
+	FOnRowRefreshClicked OnRefreshTokensRequestedDelegate;
+
 private:
+	/** Handle model changes from the token estimation service */
+	void OnModelChanged();
+
+	/** Handle cache invalidation from the token estimation service */
+	void OnCacheInvalidated();
 	/** Generate a row for the list view */
 	TSharedRef<ITableRow> OnGenerateRow(TSharedPtr<FN2CGraphListItem> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
@@ -118,6 +140,9 @@ private:
 	/** Handle double-click from row widget */
 	void HandleRowDoubleClicked(TSharedPtr<FN2CGraphListItem> Item);
 
+	/** Handle refresh button click from row widget */
+	void HandleRowRefreshClicked(TSharedPtr<FN2CGraphListItem> Item);
+
 	/** The list view widget */
 	TSharedPtr<SListView<TSharedPtr<FN2CGraphListItem>>> ListView;
 
@@ -152,4 +177,9 @@ private:
 	static const FName Column_Checkbox;
 	static const FName Column_GraphName;
 	static const FName Column_Blueprint;
+	static const FName Column_Context;
+
+	/** Delegate handles for token estimation service */
+	FDelegateHandle ModelChangedHandle;
+	FDelegateHandle CacheInvalidatedHandle;
 };

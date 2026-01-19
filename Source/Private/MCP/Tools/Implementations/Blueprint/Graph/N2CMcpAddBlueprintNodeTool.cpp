@@ -363,7 +363,7 @@ bool FN2CMcpAddBlueprintNodeTool::FindAndSpawnNode(
     FN2CMcpBlueprintUtils::MarkBlueprintAsModifiedAndCompile(Blueprint);
 
     // Log for debugging
-    FN2CLogger::Get().Log(FString::Printf(TEXT("Spawned node: %s at (%.2f, %.2f)"),
+    FN2CLogger::Get().Log(FString::Printf(TEXT("Spawned node: %s at (%d, %d)"),
         *SpawnedNode->GetNodeTitle(ENodeTitleType::ListView).ToString(),
         SpawnedNode->NodePosX, SpawnedNode->NodePosY), EN2CLogSeverity::Debug);
 

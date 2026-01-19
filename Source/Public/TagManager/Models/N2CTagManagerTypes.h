@@ -104,11 +104,27 @@ struct FN2CGraphListItem : public TSharedFromThis<FN2CGraphListItem>
 	/** Whether a translation exists for this graph (can be viewed) */
 	bool bHasTranslation;
 
+	/** Estimated token count for this graph */
+	int32 EstimatedTokens = 0;
+
+	/** Estimated cost in USD for this graph */
+	float EstimatedCost = 0.0f;
+
+	/** Context usage percentage (0.0 - 1.0), using 65% of context window */
+	float ContextUsagePercent = 0.0f;
+
+	/** Whether the token estimate is valid (has been calculated) */
+	bool bTokenEstimateValid = false;
+
 	FN2CGraphListItem()
 		: Status(EN2CGraphTranslationStatus::Pending)
 		, bIsSelected(false)
 		, bIsStarred(false)
 		, bHasTranslation(false)
+		, EstimatedTokens(0)
+		, EstimatedCost(0.0f)
+		, ContextUsagePercent(0.0f)
+		, bTokenEstimateValid(false)
 	{
 	}
 
@@ -118,6 +134,40 @@ struct FN2CGraphListItem : public TSharedFromThis<FN2CGraphListItem>
 		// Extract just the asset name from the full path
 		FString AssetName = FPaths::GetBaseFilename(TagInfo.BlueprintPath);
 		return AssetName;
+	}
+
+	/** Get formatted token count (e.g., "12,345") */
+	FString GetFormattedTokens() const
+	{
+		if (!bTokenEstimateValid || EstimatedTokens == 0)
+		{
+			return TEXT("-");
+		}
+
+		FString Result = FString::Printf(TEXT("%d"), EstimatedTokens);
+		int32 InsertPosition = Result.Len() - 3;
+		while (InsertPosition > 0)
+		{
+			Result.InsertAt(InsertPosition, TEXT(","));
+			InsertPosition -= 3;
+		}
+		return Result;
+	}
+
+	/** Get formatted cost (e.g., "$0.03") */
+	FString GetFormattedCost() const
+	{
+		if (!bTokenEstimateValid || EstimatedCost <= 0.0f)
+		{
+			return TEXT("-");
+		}
+
+		// Format with 2-4 decimal places depending on cost
+		if (EstimatedCost < 0.01f)
+		{
+			return FString::Printf(TEXT("$%.4f"), EstimatedCost);
+		}
+		return FString::Printf(TEXT("$%.2f"), EstimatedCost);
 	}
 };
 

@@ -8,6 +8,7 @@
 
 class SN2CTagCategoryTree;
 class SN2CTaggedGraphsList;
+class SN2CContextWindowVisualizer;
 
 /**
  * Main Slate widget for the Tag Manager UI
@@ -155,6 +156,9 @@ private:
 
 	/** The graphs list widget */
 	TSharedPtr<SN2CTaggedGraphsList> GraphsList;
+
+	/** The context window visualizer widget */
+	TSharedPtr<SN2CContextWindowVisualizer> ContextVisualizer;
 
 	/** Search text box */
 	TSharedPtr<SEditableTextBox> SearchBox;

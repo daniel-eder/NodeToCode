@@ -8,10 +8,11 @@ public class NodeToCode : ModuleRules
 	public NodeToCode(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
+
 		// Get the absolute path to the ThirdParty directory
-		// Using PluginDirectory property which UBT provides
-		string ThirdPartyPath = Path.Combine(PluginDirectory, "ThirdParty", "cpp-httplib");
+		// Using ModuleDirectory (Source folder) and navigating up to plugin root
+		// This is more robust than PluginDirectory when using symlinks/junctions
+		string ThirdPartyPath = Path.GetFullPath(Path.Combine(ModuleDirectory, "..", "ThirdParty", "cpp-httplib"));
         
 		PrivateIncludePaths.AddRange(
 			new string[] {
