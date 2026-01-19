@@ -11,6 +11,10 @@
 #include "Engine/Blueprint.h"
 #include "EdGraph/EdGraph.h"
 #include "K2Node.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_CreateDelegate.h"
+#include "K2Node_Composite.h"
+#include "K2Node_MacroInstance.h"
 #include "Editor.h"
 
 FN2CTokenEstimationService& FN2CTokenEstimationService::Get()
@@ -125,6 +129,238 @@ void FN2CTokenEstimationService::InvalidateAllCache()
 {
 	TokenCache.Empty();
 	OnCacheInvalidated.Broadcast();
+}
+
+int32 FN2CTokenEstimationService::GetTokenEstimateWithNesting(const FN2CTagInfo& GraphInfo, int32& OutNestedGraphCount)
+{
+	OutNestedGraphCount = 0;
+
+	const UN2CSettings* Settings = GetDefault<UN2CSettings>();
+	int32 MaxDepth = Settings ? Settings->TranslationDepth : 0;
+
+	if (MaxDepth <= 0)
+	{
+		// No nesting enabled, just return single graph estimate
+		return GetTokenEstimate(GraphInfo);
+	}
+
+	// Use recursive estimation with cycle detection
+	TSet<FString> VisitedGraphGuids;
+	return GetTokenEstimateRecursive(GraphInfo, 0, MaxDepth, VisitedGraphGuids, OutNestedGraphCount);
+}
+
+int32 FN2CTokenEstimationService::GetTranslationDepth() const
+{
+	const UN2CSettings* Settings = GetDefault<UN2CSettings>();
+	return Settings ? Settings->TranslationDepth : 0;
+}
+
+bool FN2CTokenEstimationService::IsNestedTranslationEnabled() const
+{
+	return GetTranslationDepth() > 0;
+}
+
+int32 FN2CTokenEstimationService::GetTokenEstimateRecursive(
+	const FN2CTagInfo& GraphInfo,
+	int32 CurrentDepth,
+	int32 MaxDepth,
+	TSet<FString>& VisitedGraphGuids,
+	int32& OutNestedGraphCount)
+{
+	// Prevent cycles
+	if (VisitedGraphGuids.Contains(GraphInfo.GraphGuid))
+	{
+		return 0;
+	}
+	VisitedGraphGuids.Add(GraphInfo.GraphGuid);
+
+	// Get token estimate for this graph
+	int32 TotalTokens = GetTokenEstimate(GraphInfo);
+
+	// If we've reached max depth, don't recurse further
+	if (CurrentDepth >= MaxDepth)
+	{
+		return TotalTokens;
+	}
+
+	// Find referenced graphs and recurse
+	TArray<FN2CTagInfo> ReferencedGraphs;
+	FindReferencedGraphs(GraphInfo, ReferencedGraphs);
+
+	for (const FN2CTagInfo& RefGraph : ReferencedGraphs)
+	{
+		if (!VisitedGraphGuids.Contains(RefGraph.GraphGuid))
+		{
+			OutNestedGraphCount++;
+			TotalTokens += GetTokenEstimateRecursive(RefGraph, CurrentDepth + 1, MaxDepth, VisitedGraphGuids, OutNestedGraphCount);
+		}
+	}
+
+	return TotalTokens;
+}
+
+void FN2CTokenEstimationService::FindReferencedGraphs(const FN2CTagInfo& GraphInfo, TArray<FN2CTagInfo>& OutReferencedGraphs)
+{
+	// Load the Blueprint
+	UBlueprint* Blueprint = Cast<UBlueprint>(FSoftObjectPath(GraphInfo.BlueprintPath).TryLoad());
+	if (!Blueprint)
+	{
+		return;
+	}
+
+	// Find the graph by GUID
+	FGuid GraphGuid;
+	if (!FGuid::Parse(GraphInfo.GraphGuid, GraphGuid))
+	{
+		return;
+	}
+
+	UEdGraph* FoundGraph = nullptr;
+	for (UEdGraph* Graph : Blueprint->UbergraphPages)
+	{
+		if (Graph && Graph->GraphGuid == GraphGuid)
+		{
+			FoundGraph = Graph;
+			break;
+		}
+	}
+
+	if (!FoundGraph)
+	{
+		for (UEdGraph* Graph : Blueprint->FunctionGraphs)
+		{
+			if (Graph && Graph->GraphGuid == GraphGuid)
+			{
+				FoundGraph = Graph;
+				break;
+			}
+		}
+	}
+
+	if (!FoundGraph)
+	{
+		return;
+	}
+
+	// Track already-added graphs to avoid duplicates
+	TSet<FString> AddedGuids;
+
+	// Iterate through nodes looking for function calls to user-created functions
+	for (UEdGraphNode* Node : FoundGraph->Nodes)
+	{
+		// Check for function calls
+		if (UK2Node_CallFunction* FuncNode = Cast<UK2Node_CallFunction>(Node))
+		{
+			if (UFunction* Function = FuncNode->GetTargetFunction())
+			{
+				if (UBlueprintGeneratedClass* BlueprintClass = Cast<UBlueprintGeneratedClass>(Function->GetOwnerClass()))
+				{
+					if (UBlueprint* FunctionBlueprint = Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy))
+					{
+						// Check if it's a user-created Blueprint
+						FString BPPath = FunctionBlueprint->GetPathName();
+						if (BPPath.Contains(TEXT("/Game/")) || BPPath.Contains(TEXT("/Content/")))
+						{
+							// Find the function graph
+							for (UEdGraph* FuncGraph : FunctionBlueprint->FunctionGraphs)
+							{
+								if (FuncGraph && FuncGraph->GetFName() == Function->GetFName())
+								{
+									FString FuncGraphGuid = FuncGraph->GraphGuid.ToString();
+									if (!AddedGuids.Contains(FuncGraphGuid))
+									{
+										AddedGuids.Add(FuncGraphGuid);
+
+										FN2CTagInfo RefInfo;
+										RefInfo.GraphGuid = FuncGraphGuid;
+										RefInfo.GraphName = FuncGraph->GetName();
+										RefInfo.BlueprintPath = FunctionBlueprint->GetPathName();
+										OutReferencedGraphs.Add(RefInfo);
+									}
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		// Check for delegate creation nodes
+		else if (UK2Node_CreateDelegate* CreateDelegateNode = Cast<UK2Node_CreateDelegate>(Node))
+		{
+			if (UClass* ScopeClass = CreateDelegateNode->GetScopeClass())
+			{
+				if (UBlueprint* BP = Cast<UBlueprint>(ScopeClass->ClassGeneratedBy))
+				{
+					FString BPPath = BP->GetPathName();
+					if (BPPath.Contains(TEXT("/Game/")) || BPPath.Contains(TEXT("/Content/")))
+					{
+						for (UEdGraph* FuncGraph : BP->FunctionGraphs)
+						{
+							if (FuncGraph && FuncGraph->GetFName() == CreateDelegateNode->GetFunctionName())
+							{
+								FString FuncGraphGuid = FuncGraph->GraphGuid.ToString();
+								if (!AddedGuids.Contains(FuncGraphGuid))
+								{
+									AddedGuids.Add(FuncGraphGuid);
+
+									FN2CTagInfo RefInfo;
+									RefInfo.GraphGuid = FuncGraphGuid;
+									RefInfo.GraphName = FuncGraph->GetName();
+									RefInfo.BlueprintPath = BP->GetPathName();
+									OutReferencedGraphs.Add(RefInfo);
+								}
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		// Check for composite/collapsed graphs
+		else if (UK2Node_Composite* CompositeNode = Cast<UK2Node_Composite>(Node))
+		{
+			if (UEdGraph* BoundGraph = CompositeNode->BoundGraph)
+			{
+				FString CompositeGuid = BoundGraph->GraphGuid.ToString();
+				if (!AddedGuids.Contains(CompositeGuid))
+				{
+					AddedGuids.Add(CompositeGuid);
+
+					FN2CTagInfo RefInfo;
+					RefInfo.GraphGuid = CompositeGuid;
+					RefInfo.GraphName = BoundGraph->GetName();
+					RefInfo.BlueprintPath = GraphInfo.BlueprintPath;
+					OutReferencedGraphs.Add(RefInfo);
+				}
+			}
+		}
+		// Check for macro instances
+		else if (UK2Node_MacroInstance* MacroNode = Cast<UK2Node_MacroInstance>(Node))
+		{
+			if (UEdGraph* MacroGraph = MacroNode->GetMacroGraph())
+			{
+				if (UBlueprint* MacroBP = Cast<UBlueprint>(MacroGraph->GetOuter()))
+				{
+					FString MacroPath = MacroBP->GetPathName();
+					if (MacroPath.Contains(TEXT("/Game/")) || MacroPath.Contains(TEXT("/Content/")))
+					{
+						FString MacroGuid = MacroGraph->GraphGuid.ToString();
+						if (!AddedGuids.Contains(MacroGuid))
+						{
+							AddedGuids.Add(MacroGuid);
+
+							FN2CTagInfo RefInfo;
+							RefInfo.GraphGuid = MacroGuid;
+							RefInfo.GraphName = MacroGraph->GetName();
+							RefInfo.BlueprintPath = MacroBP->GetPathName();
+							OutReferencedGraphs.Add(RefInfo);
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 float FN2CTokenEstimationService::CalculateCost(int32 TokenCount) const

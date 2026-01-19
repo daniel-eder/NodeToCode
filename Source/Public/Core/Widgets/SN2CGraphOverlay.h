@@ -75,6 +75,7 @@ private:
 	int32 CachedTokenCount = 0;
 	float CachedContextUsagePercent = 0.0f;
 	float CachedEstimatedCost = 0.0f;
+	int32 CachedNestedGraphCount = 0;
 
 	// Global translation state callback
 	void OnGlobalTranslationStateChanged(bool bInProgress);

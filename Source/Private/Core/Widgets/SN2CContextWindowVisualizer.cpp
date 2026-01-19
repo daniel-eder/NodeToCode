@@ -138,6 +138,43 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 				.Text(this, &SN2CContextWindowVisualizer::GetEstimatedCostText)
 				.ColorAndOpacity(N2CVisualizerColors::AccentGreen)
 			]
+
+			// Nested translation warning row (only visible when nesting is enabled)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.0f, 6.0f, 0.0f, 0.0f)
+			[
+				SNew(SBorder)
+				.Visibility_Lambda([]() -> EVisibility
+				{
+					return FN2CTokenEstimationService::Get().IsNestedTranslationEnabled()
+						? EVisibility::Visible
+						: EVisibility::Collapsed;
+				})
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
+				.Padding(FMargin(6.0f, 4.0f))
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString(TEXT("\u26A0"))) // Warning symbol
+						.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.6f, 0.2f)))
+					]
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(this, &SN2CContextWindowVisualizer::GetNestingInfoText)
+						.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.6f, 0.2f)))
+						.AutoWrapText(true)
+					]
+				]
+			]
 		]
 	];
 
@@ -158,6 +195,7 @@ void SN2CContextWindowVisualizer::UpdateForSelection(const TArray<FN2CTagInfo>& 
 {
 	TotalTokens = 0;
 	TotalCost = 0.0f;
+	TotalNestedGraphs = 0;
 	SelectedGraphCount = SelectedGraphs.Num();
 
 	if (SelectedGraphs.IsEmpty())
@@ -167,11 +205,13 @@ void SN2CContextWindowVisualizer::UpdateForSelection(const TArray<FN2CTagInfo>& 
 
 	FN2CTokenEstimationService& TokenService = FN2CTokenEstimationService::Get();
 
-	// Accumulate token estimates for all selected graphs
+	// Accumulate token estimates for all selected graphs (with nesting if enabled)
 	for (const FN2CTagInfo& GraphInfo : SelectedGraphs)
 	{
-		int32 GraphTokens = TokenService.GetTokenEstimate(GraphInfo);
+		int32 NestedCount = 0;
+		int32 GraphTokens = TokenService.GetTokenEstimateWithNesting(GraphInfo, NestedCount);
 		TotalTokens += GraphTokens;
+		TotalNestedGraphs += NestedCount;
 	}
 
 	// Calculate total cost
@@ -571,6 +611,26 @@ FText SN2CContextWindowVisualizer::GetEstimatedCostText() const
 FText SN2CContextWindowVisualizer::GetModelNameText() const
 {
 	return FText::FromString(FN2CTokenEstimationService::Get().GetCurrentModelName());
+}
+
+FText SN2CContextWindowVisualizer::GetNestingInfoText() const
+{
+	FN2CTokenEstimationService& TokenService = FN2CTokenEstimationService::Get();
+	int32 Depth = TokenService.GetTranslationDepth();
+
+	FString InfoStr = FString::Printf(
+		TEXT("Nested Translation: Depth %d"),
+		Depth
+	);
+
+	if (TotalNestedGraphs > 0)
+	{
+		InfoStr += FString::Printf(TEXT(" (%d nested graph(s) included)"), TotalNestedGraphs);
+	}
+
+	InfoStr += TEXT("\nToken estimates include referenced user functions. This can significantly increase costs.");
+
+	return FText::FromString(InfoStr);
 }
 
 #undef LOCTEXT_NAMESPACE

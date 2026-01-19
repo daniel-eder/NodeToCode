@@ -66,12 +66,33 @@ public:
 	// ==================== Token Estimation ====================
 
 	/**
-	 * Get the token estimate for a graph
+	 * Get the token estimate for a graph (single graph only, ignores nesting)
 	 * Uses caching with Blueprint compilation invalidation
 	 * @param GraphInfo The graph to estimate tokens for
 	 * @return Estimated token count
 	 */
 	int32 GetTokenEstimate(const FN2CTagInfo& GraphInfo);
+
+	/**
+	 * Get the token estimate for a graph including nested graphs
+	 * Respects the TranslationDepth setting for how deep to traverse
+	 * @param GraphInfo The graph to estimate tokens for
+	 * @param OutNestedGraphCount Number of nested graphs included (output)
+	 * @return Total estimated token count including nested graphs
+	 */
+	int32 GetTokenEstimateWithNesting(const FN2CTagInfo& GraphInfo, int32& OutNestedGraphCount);
+
+	/**
+	 * Get the current translation depth setting
+	 * @return Translation depth (0 = no nesting, 1-5 = levels of nesting)
+	 */
+	int32 GetTranslationDepth() const;
+
+	/**
+	 * Check if nested translation is enabled
+	 * @return true if TranslationDepth > 0
+	 */
+	bool IsNestedTranslationEnabled() const;
 
 	/**
 	 * Invalidate cache for a specific graph (manual refresh)
@@ -161,6 +182,29 @@ private:
 	 * @return JSON string, empty on failure
 	 */
 	FString SerializeGraphToJson(const FN2CTagInfo& GraphInfo);
+
+	/**
+	 * Find all referenced graphs (function calls to user-created functions)
+	 * @param GraphInfo The graph to analyze
+	 * @param OutReferencedGraphs Array of referenced graph infos
+	 */
+	void FindReferencedGraphs(const FN2CTagInfo& GraphInfo, TArray<FN2CTagInfo>& OutReferencedGraphs);
+
+	/**
+	 * Recursive helper for nested token estimation
+	 * @param GraphInfo The graph to estimate
+	 * @param CurrentDepth Current recursion depth
+	 * @param MaxDepth Maximum recursion depth
+	 * @param VisitedGraphGuids Set of already visited graph GUIDs to prevent cycles
+	 * @param OutNestedGraphCount Running count of nested graphs
+	 * @return Token estimate for this graph and its nested graphs
+	 */
+	int32 GetTokenEstimateRecursive(
+		const FN2CTagInfo& GraphInfo,
+		int32 CurrentDepth,
+		int32 MaxDepth,
+		TSet<FString>& VisitedGraphGuids,
+		int32& OutNestedGraphCount);
 
 	/**
 	 * Evict oldest cache entries if over limit

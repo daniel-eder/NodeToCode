@@ -49,6 +49,9 @@ private:
 	/** Get model name display text */
 	FText GetModelNameText() const;
 
+	/** Get nesting info display text */
+	FText GetNestingInfoText() const;
+
 	/** Handle model changes from the token estimation service */
 	void OnModelChanged();
 
@@ -112,6 +115,7 @@ private:
 	int32 TotalTokens = 0;
 	float TotalCost = 0.0f;
 	int32 SelectedGraphCount = 0;
+	int32 TotalNestedGraphs = 0;
 
 	// Cached provider for detecting changes
 	EN2CLLMProvider CachedProvider = EN2CLLMProvider::Anthropic;

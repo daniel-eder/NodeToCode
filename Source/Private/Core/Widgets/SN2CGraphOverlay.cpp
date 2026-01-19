@@ -299,6 +299,44 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 					]
 				]
 			]
+
+			// Nesting depth indicator (only visible when nesting is enabled)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(SBox)
+				.Visibility_Lambda([]() -> EVisibility
+				{
+					return FN2CTokenEstimationService::Get().IsNestedTranslationEnabled()
+						? EVisibility::Visible
+						: EVisibility::Collapsed;
+				})
+				[
+					SNew(SBorder)
+					.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
+					.Padding(FMargin(4.0f, 2.0f))
+					.ToolTipText_Lambda([]() -> FText
+					{
+						int32 Depth = FN2CTokenEstimationService::Get().GetTranslationDepth();
+						return FText::FromString(FString::Printf(
+							TEXT("Nested Translation Depth: %d\n\nThis graph's token estimate includes\nreferenced user functions up to %d level(s) deep.\n\nThis can significantly increase costs.\nAdjust in Project Settings > Node to Code."),
+							Depth, Depth
+						));
+					})
+					[
+						SNew(STextBlock)
+						.Text_Lambda([]() -> FText
+						{
+							int32 Depth = FN2CTokenEstimationService::Get().GetTranslationDepth();
+							return FText::FromString(FString::Printf(TEXT("N:%d"), Depth));
+						})
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 7))
+						.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.6f, 0.2f))) // Orange to indicate active nesting
+					]
+				]
+			]
 		]
 	];
 
@@ -872,7 +910,9 @@ void SN2CGraphOverlay::RefreshTokenEstimate()
 	GraphInfo.GraphName = GraphName;
 
 	FN2CTokenEstimationService& Service = FN2CTokenEstimationService::Get();
-	CachedTokenCount = Service.GetTokenEstimate(GraphInfo);
+
+	// Use nesting-aware estimation if enabled
+	CachedTokenCount = Service.GetTokenEstimateWithNesting(GraphInfo, CachedNestedGraphCount);
 
 	int32 UsableContext = Service.GetUsableContextWindow();
 	CachedContextUsagePercent = UsableContext > 0
@@ -912,6 +952,21 @@ FText SN2CGraphOverlay::GetContextTooltipText() const
 		*FormatNumber(CachedTokenCount),
 		Service.IsLocalProvider() ? TEXT("Free (local)") : *FString::Printf(TEXT("$%.4f"), CachedEstimatedCost)
 	);
+
+	// Show nesting info if enabled
+	if (Service.IsNestedTranslationEnabled())
+	{
+		int32 Depth = Service.GetTranslationDepth();
+		TooltipStr += FString::Printf(
+			TEXT("\n\nNested Translation: ON (depth %d)"),
+			Depth
+		);
+		if (CachedNestedGraphCount > 0)
+		{
+			TooltipStr += FString::Printf(TEXT("\nIncludes %d nested graph(s)"), CachedNestedGraphCount);
+		}
+		TooltipStr += TEXT("\n\n⚠ Nested translation includes referenced\nfunctions, increasing token count and cost.");
+	}
 
 	// Add warning if > 45% usage
 	if (CachedContextUsagePercent > 0.45f)
