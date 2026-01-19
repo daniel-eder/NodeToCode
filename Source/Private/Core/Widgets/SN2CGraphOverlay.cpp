@@ -913,8 +913,8 @@ FText SN2CGraphOverlay::GetContextTooltipText() const
 		Service.IsLocalProvider() ? TEXT("Free (local)") : *FString::Printf(TEXT("$%.4f"), CachedEstimatedCost)
 	);
 
-	// Add warning if > 65% usage
-	if (CachedContextUsagePercent > 0.65f)
+	// Add warning if > 45% usage
+	if (CachedContextUsagePercent > 0.45f)
 	{
 		TooltipStr += TEXT("\n\n⚠ High context usage. Consider refactoring\nthis graph into smaller, reusable functions.");
 	}
