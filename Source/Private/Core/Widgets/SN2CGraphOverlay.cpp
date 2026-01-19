@@ -1,18 +1,22 @@
 // Copyright (c) 2025 Nick McClure (Protospatial). All Rights Reserved.
 
 #include "Core/Widgets/SN2CGraphOverlay.h"
+#include "Core/Widgets/SN2CCircularProgressBar.h"
 #include "Core/N2CEditorIntegration.h"
 #include "Core/N2CEditorWindow.h"
 #include "Core/N2CTagManager.h"
 #include "Core/N2CGraphStateManager.h"
+#include "Core/Services/N2CTokenEstimationService.h"
 #include "Models/N2CStyle.h"
 #include "Utils/N2CLogger.h"
 #include "BlueprintEditor.h"
+#include "BlueprintLibraries/N2CTagBlueprintLibrary.h"
 #include "TagManager/Models/N2CTagManagerTypes.h"
 #include "Framework/Docking/TabManager.h"
 
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Widgets/SOverlay.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Text/STextBlock.h"
@@ -250,8 +254,61 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 					]
 				]
 			]
+
+			// Separator before context usage
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(4.0f, 0.0f, 2.0f, 0.0f)
+			[
+				SNew(SSeparator)
+				.Orientation(Orient_Vertical)
+				.Thickness(1.0f)
+			]
+
+			// Context usage circular progress with percentage overlay
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(SBox)
+				.WidthOverride(32.0f)
+				.HeightOverride(32.0f)
+				.ToolTipText(this, &SN2CGraphOverlay::GetContextTooltipText)
+				[
+					SNew(SOverlay)
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SN2CCircularProgressBar)
+						.Percent(this, &SN2CGraphOverlay::GetContextUsagePercent)
+						.Radius(14.0f)
+						.Thickness(3.0f)
+					]
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(this, &SN2CGraphOverlay::GetContextUsagePercentText)
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 7))
+						.Justification(ETextJustify::Center)
+						.ColorAndOpacity(FSlateColor(FLinearColor(0.8f, 0.8f, 0.8f)))
+					]
+				]
+			]
 		]
 	];
+
+	// Subscribe to token estimation service events
+	FN2CTokenEstimationService& TokenService = FN2CTokenEstimationService::Get();
+	OnModelChangedHandle = TokenService.OnModelChanged.AddSP(this, &SN2CGraphOverlay::OnModelChanged);
+	OnCacheInvalidatedHandle = TokenService.OnCacheInvalidated.AddSP(this, &SN2CGraphOverlay::OnCacheInvalidated);
+
+	// Initial token estimate
+	RefreshTokenEstimate();
 
 	//FN2CLogger::Get().Log(TEXT("SN2CGraphOverlay::Construct: Widget hierarchy built successfully"), EN2CLogSeverity::Warning);
 	//FN2CLogger::Get().Log(FString::Printf(TEXT("SN2CGraphOverlay::Construct: TagMenuAnchor valid=%d"), TagMenuAnchor.IsValid() ? 1 : 0), EN2CLogSeverity::Warning);
@@ -274,6 +331,15 @@ SN2CGraphOverlay::~SN2CGraphOverlay()
 	if (OnTranslationStateChangedHandle.IsValid())
 	{
 		FN2CEditorIntegration::Get().OnTranslationStateChanged.Remove(OnTranslationStateChangedHandle);
+	}
+	// Unsubscribe from token estimation service
+	if (OnModelChangedHandle.IsValid())
+	{
+		FN2CTokenEstimationService::Get().OnModelChanged.Remove(OnModelChangedHandle);
+	}
+	if (OnCacheInvalidatedHandle.IsValid())
+	{
+		FN2CTokenEstimationService::Get().OnCacheInvalidated.Remove(OnCacheInvalidatedHandle);
 	}
 }
 
@@ -796,6 +862,78 @@ FSlateColor SN2CGraphOverlay::GetTagButtonColor() const
 		return FSlateColor(FLinearColor(0.83f, 0.63f, 0.29f)); // Gold/amber for tagged
 	}
 	return FSlateColor(FLinearColor(0.5f, 0.5f, 0.5f)); // Gray for untagged
+}
+
+void SN2CGraphOverlay::RefreshTokenEstimate()
+{
+	FN2CTagInfo GraphInfo;
+	GraphInfo.GraphGuid = GraphGuid.ToString();
+	GraphInfo.BlueprintPath = BlueprintPath;
+	GraphInfo.GraphName = GraphName;
+
+	FN2CTokenEstimationService& Service = FN2CTokenEstimationService::Get();
+	CachedTokenCount = Service.GetTokenEstimate(GraphInfo);
+
+	int32 UsableContext = Service.GetUsableContextWindow();
+	CachedContextUsagePercent = UsableContext > 0
+		? FMath::Clamp(static_cast<float>(CachedTokenCount) / UsableContext, 0.0f, 1.0f)
+		: 0.0f;
+
+	CachedEstimatedCost = Service.CalculateCost(CachedTokenCount);
+}
+
+void SN2CGraphOverlay::OnModelChanged()
+{
+	RefreshTokenEstimate();
+}
+
+void SN2CGraphOverlay::OnCacheInvalidated()
+{
+	RefreshTokenEstimate();
+}
+
+float SN2CGraphOverlay::GetContextUsagePercent() const
+{
+	return CachedContextUsagePercent;
+}
+
+FText SN2CGraphOverlay::GetContextUsagePercentText() const
+{
+	int32 PercentInt = FMath::RoundToInt(CachedContextUsagePercent * 100.0f);
+	return FText::FromString(FString::Printf(TEXT("%d%%"), PercentInt));
+}
+
+FText SN2CGraphOverlay::GetContextTooltipText() const
+{
+	FN2CTokenEstimationService& Service = FN2CTokenEstimationService::Get();
+
+	FString TooltipStr = FString::Printf(
+		TEXT("Tokens: %s\nEstimated cost: %s"),
+		*FormatNumber(CachedTokenCount),
+		Service.IsLocalProvider() ? TEXT("Free (local)") : *FString::Printf(TEXT("$%.4f"), CachedEstimatedCost)
+	);
+
+	// Add warning if > 65% usage
+	if (CachedContextUsagePercent > 0.65f)
+	{
+		TooltipStr += TEXT("\n\n⚠ High context usage. Consider refactoring\nthis graph into smaller, reusable functions.");
+	}
+
+	return FText::FromString(TooltipStr);
+}
+
+FString SN2CGraphOverlay::FormatNumber(int64 Number)
+{
+	FString Result = FString::Printf(TEXT("%lld"), Number);
+	int32 InsertPosition = Result.Len() - 3;
+
+	while (InsertPosition > 0)
+	{
+		Result.InsertAt(InsertPosition, TEXT(","));
+		InsertPosition -= 3;
+	}
+
+	return Result;
 }
 
 #undef LOCTEXT_NAMESPACE

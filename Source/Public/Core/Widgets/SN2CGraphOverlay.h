@@ -8,6 +8,7 @@
 #include "Models/N2CTaggedBlueprintGraph.h"
 
 class FBlueprintEditor;
+class SN2CCircularProgressBar;
 
 /**
  * Overlay widget that appears in the top-right corner of Blueprint graph editors
@@ -67,6 +68,13 @@ private:
 	FDelegateHandle OnTagAddedHandle;
 	FDelegateHandle OnTagRemovedHandle;
 	FDelegateHandle OnTranslationStateChangedHandle;
+	FDelegateHandle OnModelChangedHandle;
+	FDelegateHandle OnCacheInvalidatedHandle;
+
+	// Context window tracking
+	int32 CachedTokenCount = 0;
+	float CachedContextUsagePercent = 0.0f;
+	float CachedEstimatedCost = 0.0f;
 
 	// Global translation state callback
 	void OnGlobalTranslationStateChanged(bool bInProgress);
@@ -94,4 +102,15 @@ private:
 	FText GetTranslateTooltip() const;
 	FText GetTagButtonTooltip() const;
 	FSlateColor GetTagButtonColor() const;
+
+	// Context usage helpers
+	void RefreshTokenEstimate();
+	void OnModelChanged();
+	void OnCacheInvalidated();
+	float GetContextUsagePercent() const;
+	FText GetContextUsagePercentText() const;
+	FText GetContextTooltipText() const;
+
+	// Number formatting helper
+	static FString FormatNumber(int64 Number);
 };
