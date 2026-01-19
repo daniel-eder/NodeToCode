@@ -9,7 +9,9 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Images/SImage.h"
 #include "Styling/AppStyle.h"
+#include "Styling/SlateIconFinder.h"
 #include "ISettingsModule.h"
 #include "Modules/ModuleManager.h"
 
@@ -111,9 +113,8 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 					.ToolTipText(LOCTEXT("SettingsTooltip", "Open NodeToCode Settings"))
 					.ContentPadding(FMargin(2.0f))
 					[
-						SNew(STextBlock)
-						.Text(FText::FromString(TEXT("\u2699"))) // Gear icon unicode
-						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
+						SNew(SImage)
+						.Image(FSlateIcon(FName("CoreStyle"), "Icons.Toolbar.Settings").GetIcon())
 						.ColorAndOpacity(N2CVisualizerColors::TextSecondary)
 					]
 				]
@@ -490,8 +491,9 @@ bool SN2CContextWindowVisualizer::IsLocalProvider() const
 FReply SN2CContextWindowVisualizer::OnSettingsClicked()
 {
 	// Open Project Settings to NodeToCode section
+	// Section name is the class name without 'U' prefix (N2CSettings)
 	ISettingsModule& SettingsModule = FModuleManager::LoadModuleChecked<ISettingsModule>("Settings");
-	SettingsModule.ShowViewer("Project", "Plugins", "Node to Code");
+	SettingsModule.ShowViewer("Project", "Plugins", "N2CSettings");
 
 	return FReply::Handled();
 }

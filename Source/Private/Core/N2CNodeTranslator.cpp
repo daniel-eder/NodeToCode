@@ -754,7 +754,10 @@ void FN2CNodeTranslator::ProcessNodePins(UK2Node* Node, FN2CNodeDefinition& OutN
             
             if (Pin->Direction == EGPD_Input && Pin->PinType.PinCategory == TEXT("object"))
             {
-                PinDef.SubType = GetCleanClassName(CreateDelegateNode->GetScopeClass()->GetName());
+                if (UClass* ScopeClass = CreateDelegateNode->GetScopeClass())
+                {
+                    PinDef.SubType = GetCleanClassName(ScopeClass->GetName());
+                }
             }
         }
         else if (Pin->PinType.PinSubCategoryObject.IsValid())
