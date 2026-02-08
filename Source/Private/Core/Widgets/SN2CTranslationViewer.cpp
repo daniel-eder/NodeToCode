@@ -30,7 +30,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SBorder)
-		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+		.BorderImage(&N2CStyle::GetPanelBorderBrush())
 		.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 		.Padding(0)
 		[
@@ -41,7 +41,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(SBorder)
-				.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
+				.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
 				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 				.Padding(FMargin(12.0f, 10.0f))
 				[
@@ -81,7 +81,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(SBorder)
-				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				.BorderImage(&N2CStyle::GetPanelBorderBrush())
 				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 				.Padding(FMargin(12.0f, 8.0f))
 				[
@@ -146,7 +146,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			.FillHeight(1.0f)
 			[
 				SNew(SBorder)
-				.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
+				.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
 				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 				.Padding(0)
 				[
@@ -163,7 +163,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 				SAssignNew(NotesSection, SExpandableArea)
 				.AreaTitle(LOCTEXT("NotesHeader", "Translation Notes"))
 				.InitiallyCollapsed(false)
-				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				.BorderImage(&N2CStyle::GetPanelBorderBrush())
 				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 				.HeaderPadding(FMargin(12.0f, 8.0f))
 				.Padding(FMargin(0.0f))
@@ -173,7 +173,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 					.MaxDesiredHeight(150.0f)
 					[
 						SNew(SBorder)
-						.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
+						.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
 						.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 						.Padding(FMargin(16.0f, 12.0f))
 						[

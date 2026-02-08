@@ -114,6 +114,11 @@ struct FN2CUIColors
     UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Accents", meta = (DisplayName = "Accent Yellow"))
     FColor AccentYellow = FColor(229, 192, 123);
 
+    // ── Editor Colors ───────────────────────────────────────────────
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Editor", meta = (DisplayName = "Text Highlight"))
+    FColor TextHighlight = FColor(5, 77, 0);
+
     // ── Helper Methods ─────────────────────────────────────────────
 
     static FLinearColor ToLinear(const FColor& Color)

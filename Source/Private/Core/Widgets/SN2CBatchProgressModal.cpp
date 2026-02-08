@@ -37,7 +37,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 		.MaxDesiredHeight(MaxModalHeight)
 		[
 			SNew(SBorder)
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderImage(&N2CStyle::GetPanelBorderBrush())
 			.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 			.Padding(0)
 			[
@@ -48,7 +48,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				[
 					SNew(SBorder)
-					.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(&N2CStyle::GetPanelBorderBrush())
 					.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 					.Padding(FMargin(16.0f, 14.0f))
 					[
@@ -127,7 +127,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 						.MaxDesiredHeight(MaxListHeight)
 						[
 							SNew(SBorder)
-							.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
+							.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
 							.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 							.Padding(0)
 							[
@@ -150,7 +150,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				[
 					SNew(SBorder)
-					.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderImage(&N2CStyle::GetPanelBorderBrush())
 					.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 					.Padding(FMargin(16.0f, 12.0f))
 					[

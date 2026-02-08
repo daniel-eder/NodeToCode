@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Nick McClure (Protospatial). All Rights Reserved.
 
 #include "Core/Widgets/SN2CMainWindow.h"
+#include "Models/N2CStyle.h"
 #include "Core/Widgets/SN2CTagManager.h"
 #include "Core/Widgets/SN2CTranslationViewer.h"
 #include "Core/Widgets/SN2CBatchProgressModal.h"
@@ -66,7 +67,7 @@ void SN2CMainWindow::Construct(const FArguments& InArgs)
 			.BlurStrength(2.0f)
 			[
 				SNew(SBorder)
-				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				.BorderImage(&N2CStyle::GetPanelBorderBrush())
 				.BorderBackgroundColor(UIBindAlpha(&FN2CUIColors::BgPanelDarker, 0.30f))
 				.Padding(20.0f)
 				[
@@ -81,7 +82,7 @@ void SN2CMainWindow::Construct(const FArguments& InArgs)
 		[
 			SNew(SBorder)
 			.Visibility(this, &SN2CMainWindow::GetBatchProgressVisibility)
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderImage(&N2CStyle::GetPanelBorderBrush())
 			.BorderBackgroundColor(UIBindAlpha(&FN2CUIColors::BgPanelDarker, 0.30f))
 			.Padding(0.0f)
 			[

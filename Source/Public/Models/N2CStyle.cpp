@@ -13,6 +13,10 @@ FButtonStyle N2CStyle::N2CButtonStyle;
 FButtonStyle N2CStyle::N2CSimpleButtonStyle;
 FButtonStyle N2CStyle::N2CNoBorderStyle;
 
+// Static FSlateBrush instances — stable addresses allow SBorder to see live updates
+FSlateBrush N2CStyle::N2CPanelBorderBrush;
+FSlateBrush N2CStyle::N2CDarkPanelBorderBrush;
+
 void N2CStyle::Initialize()
 {
 	if (!StyleInstance.IsValid())
@@ -61,6 +65,8 @@ const FName& N2CStyle::GetStyleSetName() const
 const FButtonStyle& N2CStyle::GetButtonStyle() { return N2CButtonStyle; }
 const FButtonStyle& N2CStyle::GetSimpleButtonStyle() { return N2CSimpleButtonStyle; }
 const FButtonStyle& N2CStyle::GetNoBorderStyle() { return N2CNoBorderStyle; }
+const FSlateBrush& N2CStyle::GetPanelBorderBrush() { return N2CPanelBorderBrush; }
+const FSlateBrush& N2CStyle::GetDarkPanelBorderBrush() { return N2CDarkPanelBorderBrush; }
 
 TSharedRef<FSlateStyleSet> N2CStyle::Create()
 {
@@ -73,8 +79,9 @@ TSharedRef<FSlateStyleSet> N2CStyle::Create()
     Style->Set("NodeToCode.ToolbarButton",
         new N2C_PLUGIN_BRUSH(TEXT("button_icon"), FVector2D(128.0f, 128.0f)));
 
-    // Populate button styles from current palette
+    // Populate styles from current palette
     UpdateButtonStyles();
+    UpdateBorderBrushes();
 
     return Style;
 }
@@ -122,4 +129,21 @@ void N2CStyle::UpdateButtonStyles()
 	N2CNoBorderStyle.SetDisabledForeground(DisabledFg);
 	N2CNoBorderStyle.SetNormalPadding(FMargin(0.0f));
 	N2CNoBorderStyle.SetPressedPadding(FMargin(0.0f));
+}
+
+void N2CStyle::UpdateBorderBrushes()
+{
+	const FN2CUIColors& Colors = UN2CSettings::GetUIColors();
+
+	// Panel border: rounded box with subtle outline, fill tinted by BorderBackgroundColor at widget level
+	N2CPanelBorderBrush = FSlateRoundedBoxBrush(
+		FLinearColor::White, 4.0f,
+		FN2CUIColors::ToLinear(Colors.BorderSubtle), 1.0f
+	);
+
+	// Dark panel border: same shape, darker context
+	N2CDarkPanelBorderBrush = FSlateRoundedBoxBrush(
+		FLinearColor::White, 4.0f,
+		FN2CUIColors::ToLinear(Colors.BorderSubtle), 1.0f
+	);
 }

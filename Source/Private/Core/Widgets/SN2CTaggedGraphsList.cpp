@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Nick McClure (Protospatial). All Rights Reserved.
 
 #include "Core/Widgets/SN2CTaggedGraphsList.h"
+#include "Core/N2CSettings.h"
 #include "Core/N2CGraphStateManager.h"
 #include "Core/Services/N2CTokenEstimationService.h"
 #include "Widgets/Layout/SBorder.h"
@@ -76,12 +77,13 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 		.Padding(0.0f, 0.0f, 0.0, 4.0f)
 		[
 			SNew(SBorder)
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderImage(&N2CStyle::GetPanelBorderBrush())
+			.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 			.Padding(4.0f)
 			[
 				SAssignNew(HeaderPathText, STextBlock)
 				.Text(LOCTEXT("SelectTagPrompt", "Select a category or tag"))
-				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+				.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 			]
 		]
 		// List view
@@ -89,7 +91,8 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 		.FillHeight(1.0f)
 		[
 			SNew(SBorder)
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderImage(&N2CStyle::GetPanelBorderBrush())
+			.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 			.Padding(0.0f)
 			[
 				SAssignNew(ListView, SListView<TSharedPtr<FN2CGraphListItem>>)

@@ -145,12 +145,12 @@ FSlateColor FN2COAuthSettingsCustomization::GetStatusColor() const
 	{
 		if (TokenManager->IsTokenExpired())
 		{
-			return FSlateColor(FLinearColor(1.0f, 0.7f, 0.0f)); // Orange for expired
+			return FSlateColor(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().AccentOrange));
 		}
-		return FSlateColor(FLinearColor(0.0f, 0.8f, 0.0f)); // Green for connected
+		return FSlateColor(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().AccentGreen));
 	}
 
-	return FSlateColor(FLinearColor(0.5f, 0.5f, 0.5f)); // Gray for not connected
+	return FSlateColor(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().TextMuted));
 }
 
 bool FN2COAuthSettingsCustomization::IsAuthenticated() const

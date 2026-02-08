@@ -306,7 +306,7 @@ FTextBlockStyle FN2CCodeEditorStyle::CreateDefaultTextStyle(const FName& TypeNam
         .SetColorAndOpacity(FSlateColor(FLinearColor::White))
         .SetShadowOffset(FVector2D::ZeroVector)
         .SetShadowColorAndOpacity(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().TextShadow))
-        .SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f));
+        .SetHighlightColor(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().TextHighlight));
 }
 
 void FN2CCodeEditorStyle::Shutdown()

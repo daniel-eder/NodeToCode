@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Nick McClure (Protospatial). All Rights Reserved.
 
 #include "Core/Widgets/SN2CTagCategoryTree.h"
+#include "Models/N2CStyle.h"
 #include "Core/N2CTagManager.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
@@ -19,7 +20,8 @@ void SN2CTagCategoryTree::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SBorder)
-		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+		.BorderImage(&N2CStyle::GetPanelBorderBrush())
+		.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 		.Padding(4.0f)
 		[
 			SNew(SVerticalBox)
@@ -30,7 +32,7 @@ void SN2CTagCategoryTree::Construct(const FArguments& InArgs)
 				SNew(STextBlock)
 				.Text(LOCTEXT("CategoriesHeader", "CATEGORIES"))
 				.Font(FAppStyle::GetFontStyle("SmallFontBold"))
-				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+				.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 			]
 			+ SVerticalBox::Slot()
 			.FillHeight(1.0f)

@@ -22,8 +22,13 @@ public:
     static const FButtonStyle& GetSimpleButtonStyle();
     static const FButtonStyle& GetNoBorderStyle();
 
-    // Update button styles in-place from current palette (called on settings change)
+    // Border brush accessors — return stable pointers for live SBorder updates
+    static const FSlateBrush& GetPanelBorderBrush();
+    static const FSlateBrush& GetDarkPanelBorderBrush();
+
+    // Update styles in-place from current palette (called on settings change)
     static void UpdateButtonStyles();
+    static void UpdateBorderBrushes();
 
 private:
     static TSharedRef<FSlateStyleSet> Create();
@@ -33,6 +38,10 @@ private:
     static FButtonStyle N2CButtonStyle;
     static FButtonStyle N2CSimpleButtonStyle;
     static FButtonStyle N2CNoBorderStyle;
+
+    // Static FSlateBrush instances for panel borders (assigned FSlateRoundedBoxBrush values)
+    static FSlateBrush N2CPanelBorderBrush;
+    static FSlateBrush N2CDarkPanelBorderBrush;
 };
 
 // Add macro for plugin brushes

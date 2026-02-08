@@ -122,7 +122,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 							SNew(STextBlock)
 							.Text(this, &SN2CGraphListRow::GetTokensText)
 							.Font(FAppStyle::GetFontStyle("TinyFont"))
-							.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+							.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 						]
 
 						// Cost

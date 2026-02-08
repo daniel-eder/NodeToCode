@@ -67,7 +67,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SBorder)
-		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+		.BorderImage(&N2CStyle::GetPanelBorderBrush())
 		.BorderBackgroundColor(UIBindAlpha(&FN2CUIColors::BgOverlayPanel, 0.85f))
 		.Padding(FMargin(6.0f, 4.0f))
 		[
@@ -105,7 +105,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("N2CBranding", "N2C"))
-						.TextStyle(FAppStyle::Get(), "SmallText")
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
 						.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
 					]
 				]
@@ -159,7 +159,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 						[
 							SNew(STextBlock)
 							.Text(this, &SN2CGraphOverlay::GetTagCountText)
-							.TextStyle(FAppStyle::Get(), "SmallText")
+							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
 							.ColorAndOpacity(this, &SN2CGraphOverlay::GetTagButtonColor)
 						]
 					]
@@ -251,7 +251,8 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TranslateButton", "Translate"))
-						.TextStyle(FAppStyle::Get(), "SmallText")
+						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
+						.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 					]
 				]
 			]
@@ -316,7 +317,8 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 				})
 				[
 					SNew(SBorder)
-					.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
+					.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
+					.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 					.Padding(FMargin(4.0f, 2.0f))
 					.ToolTipText_Lambda([]() -> FText
 					{
@@ -488,7 +490,8 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	[
 		SNew(STextBlock)
 		.Text(FText::Format(LOCTEXT("TagsForGraph", "Tags for \"{0}\""), FText::FromString(GraphName)))
-		.TextStyle(FAppStyle::Get(), "NormalText.Important")
+		.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
+		.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 	];
 
 	// Separator
@@ -516,7 +519,8 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(TEXT("\u2022"))) // Bullet character
-					.TextStyle(FAppStyle::Get(), "SmallText")
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
+					.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 				]
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
@@ -564,7 +568,8 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("NoTags", "No tags applied"))
-			.TextStyle(FAppStyle::Get(), "NormalText.Subdued")
+			.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
+			.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 		];
 	}
 
@@ -583,8 +588,8 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	[
 		SNew(STextBlock)
 		.Text(LOCTEXT("AddNewTagHeader", "Add New Tag"))
-		.TextStyle(FAppStyle::Get(), "SmallText")
-		.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+		.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
+		.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 	];
 
 	// Get existing tags and categories for the dropdowns
@@ -785,7 +790,8 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	];
 
 	return SNew(SBorder)
-		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+		.BorderImage(&N2CStyle::GetPanelBorderBrush())
+		.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 		.Padding(0.0f)
 		[
 			SNew(SBox)

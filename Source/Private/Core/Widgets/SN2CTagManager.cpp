@@ -114,7 +114,8 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 			.Visibility(InArgs._ShowActionBar ? EVisibility::Visible : EVisibility::Collapsed)
 			[
 				SNew(SBorder)
-				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				.BorderImage(&N2CStyle::GetPanelBorderBrush())
+				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 				.Padding(8.0f)
 				[
 					SNew(SVerticalBox)
@@ -126,7 +127,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						SNew(STextBlock)
 						.Text(LOCTEXT("ActionsHeader", "ACTIONS"))
 						.Font(FAppStyle::GetFontStyle("SmallFontBold"))
-						.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+						.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 					]
 					// Selection info
 					+ SVerticalBox::Slot()

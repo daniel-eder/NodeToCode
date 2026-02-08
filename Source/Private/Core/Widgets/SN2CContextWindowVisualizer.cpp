@@ -35,7 +35,8 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SBorder)
-		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+		.BorderImage(&N2CStyle::GetPanelBorderBrush())
+		.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 		.Padding(8.0f)
 		[
 			SNew(SVerticalBox)
@@ -141,7 +142,8 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 						? EVisibility::Visible
 						: EVisibility::Collapsed;
 				})
-				.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
+				.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
+				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 				.Padding(FMargin(6.0f, 4.0f))
 				[
 					SNew(SHorizontalBox)
