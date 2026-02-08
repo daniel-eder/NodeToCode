@@ -3,6 +3,7 @@
 #include "N2CStyle.h"
 #include "Core/N2CSettings.h"
 #include "Styling/SlateStyleRegistry.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
 #include "Framework/Application/SlateApplication.h"
 
 TSharedPtr<FSlateStyleSet> N2CStyle::StyleInstance = nullptr;
@@ -87,10 +88,10 @@ void N2CStyle::UpdateButtonStyles()
 	const FSlateColor DisabledFg(FN2CUIColors::ToLinear(Colors.BtnForegroundDisabled));
 
 	// ── N2C.Button ── Solid background action buttons
-	N2CButtonStyle.SetNormal(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnNormal)));
-	N2CButtonStyle.SetHovered(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnHovered)));
-	N2CButtonStyle.SetPressed(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnPressed)));
-	N2CButtonStyle.SetDisabled(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnDisabled)));
+	N2CButtonStyle.SetNormal(FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BtnNormal), 4.0f));
+	N2CButtonStyle.SetHovered(FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BtnHovered), 4.0f));
+	N2CButtonStyle.SetPressed(FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BtnPressed), 4.0f));
+	N2CButtonStyle.SetDisabled(FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BtnDisabled), 4.0f));
 	N2CButtonStyle.SetNormalForeground(NormalFg);
 	N2CButtonStyle.SetHoveredForeground(HoveredFg);
 	N2CButtonStyle.SetPressedForeground(NormalFg);
@@ -100,8 +101,8 @@ void N2CStyle::UpdateButtonStyles()
 
 	// ── N2C.SimpleButton ── Transparent/minimal icon buttons
 	N2CSimpleButtonStyle.SetNormal(FSlateNoResource());
-	N2CSimpleButtonStyle.SetHovered(FSlateColorBrush(FN2CUIColors::ToLinearWithAlpha(Colors.BtnHovered, 0.5f)));
-	N2CSimpleButtonStyle.SetPressed(FSlateColorBrush(FN2CUIColors::ToLinearWithAlpha(Colors.BtnPressed, 0.6f)));
+	N2CSimpleButtonStyle.SetHovered(FSlateRoundedBoxBrush(FN2CUIColors::ToLinearWithAlpha(Colors.BtnHovered, 0.5f), 4.0f));
+	N2CSimpleButtonStyle.SetPressed(FSlateRoundedBoxBrush(FN2CUIColors::ToLinearWithAlpha(Colors.BtnPressed, 0.6f), 4.0f));
 	N2CSimpleButtonStyle.SetDisabled(FSlateNoResource());
 	N2CSimpleButtonStyle.SetNormalForeground(NormalFg);
 	N2CSimpleButtonStyle.SetHoveredForeground(HoveredFg);
