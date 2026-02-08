@@ -68,7 +68,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 	[
 		SNew(SBorder)
 		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-		.BorderBackgroundColor(UILA(N2CUI().BgOverlayPanel, 0.85f))
+		.BorderBackgroundColor(UIBindAlpha(&FN2CUIColors::BgOverlayPanel, 0.85f))
 		.Padding(FMargin(6.0f, 4.0f))
 		[
 			SNew(SHorizontalBox)
@@ -80,7 +80,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 			.Padding(0.0f, 0.0f, 4.0f, 0.0f)
 			[
 				SNew(SButton)
-				.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+				.ButtonStyle(N2CStyle::Get(), "N2C.SimpleButton")
 				.ToolTipText(LOCTEXT("OpenWindowTooltip", "Open NodeToCode Window"))
 				.OnClicked(this, &SN2CGraphOverlay::OnOpenWindowClicked)
 				.ContentPadding(FMargin(2.0f, 2.0f))
@@ -106,7 +106,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 						SNew(STextBlock)
 						.Text(LOCTEXT("N2CBranding", "N2C"))
 						.TextStyle(FAppStyle::Get(), "SmallText")
-						.ColorAndOpacity(FSlateColor(UIL(N2CUI().TextSecondary)))
+						.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
 					]
 				]
 			]
@@ -133,7 +133,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 				.OnGetMenuContent(this, &SN2CGraphOverlay::CreateTagPopoverContent)
 				[
 					SNew(SButton)
-					.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+					.ButtonStyle(N2CStyle::Get(), "N2C.SimpleButton")
 					.ToolTipText(this, &SN2CGraphOverlay::GetTagButtonTooltip)
 					.OnClicked(this, &SN2CGraphOverlay::OnTagButtonClicked)
 					.ContentPadding(FMargin(4.0f, 2.0f))
@@ -184,7 +184,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 			.Padding(4.0f, 0.0f)
 			[
 				SNew(SButton)
-				.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+				.ButtonStyle(N2CStyle::Get(), "N2C.SimpleButton")
 				.ToolTipText(this, &SN2CGraphOverlay::GetCopyJsonTooltip)
 				.OnClicked(this, &SN2CGraphOverlay::OnCopyJsonClicked)
 				.ContentPadding(FMargin(4.0f, 2.0f))
@@ -217,7 +217,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 			[
 				SNew(SButton)
-				.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+				.ButtonStyle(N2CStyle::Get(), "N2C.SimpleButton")
 				.ToolTipText(this, &SN2CGraphOverlay::GetTranslateTooltip)
 				.OnClicked(this, &SN2CGraphOverlay::OnTranslateClicked)
 				.IsEnabled_Lambda([this]() { return !bIsTranslating; })
@@ -296,7 +296,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 						.Text(this, &SN2CGraphOverlay::GetContextUsagePercentText)
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 7))
 						.Justification(ETextJustify::Center)
-						.ColorAndOpacity(FSlateColor(UIL(N2CUI().TextPrimary)))
+						.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 					]
 				]
 			]
@@ -334,7 +334,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 							return FText::FromString(FString::Printf(TEXT("N:%d"), Depth));
 						})
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 7))
-						.ColorAndOpacity(FSlateColor(UIL(N2CUI().AccentOrange))) // Orange to indicate active nesting
+						.ColorAndOpacity(UIBind(&FN2CUIColors::AccentOrange)) // Orange to indicate active nesting
 					]
 				]
 			]
@@ -532,7 +532,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
-					.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+					.ButtonStyle(N2CStyle::Get(), "N2C.SimpleButton")
 					.ToolTipText(LOCTEXT("RemoveTagTooltip", "Remove this tag"))
 					.OnClicked_Lambda([this, TagItem]()
 					{
@@ -543,7 +543,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 					[
 						SNew(SImage)
 						.Image(FAppStyle::GetBrush("Icons.X"))
-						.ColorAndOpacity(FSlateColor(UIL(N2CUI().AccentRed)))
+						.ColorAndOpacity(UIBind(&FN2CUIColors::AccentRed))
 					]
 				]
 			];
@@ -739,7 +739,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	.Padding(8.0f, 4.0f, 8.0f, 8.0f)
 	[
 		SNew(SButton)
-		.ButtonStyle(FAppStyle::Get(), "Button")
+		.ButtonStyle(N2CStyle::Get(), "N2C.Button")
 		.HAlign(HAlign_Center)
 		.OnClicked_Lambda([this, TagInputBox, CategoryInputBox]()
 		{
@@ -771,7 +771,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 			[
 				SNew(SImage)
 				.Image(FAppStyle::GetBrush("Icons.Plus"))
-				.ColorAndOpacity(FSlateColor(UIL(N2CUI().AccentGreen)))
+				.ColorAndOpacity(UIBind(&FN2CUIColors::AccentGreen))
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()

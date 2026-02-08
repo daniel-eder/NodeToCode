@@ -12,6 +12,7 @@
 #include "Styling/AppStyle.h"
 #include "Models/N2CLogging.h"
 #include "Core/N2CSettings.h"
+#include "Models/N2CStyle.h"
 
 #define LOCTEXT_NAMESPACE "SN2CGraphListRow"
 
@@ -83,7 +84,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 					SNew(STextBlock)
 					.Text(FText::FromString(Item->GetBlueprintDisplayName()))
 					.Font(FAppStyle::GetFontStyle("SmallFont"))
-					.ColorAndOpacity(UIL(N2CUI().AccentBlue)) // Blueprint blue
+					.ColorAndOpacity(UIBind(&FN2CUIColors::AccentBlue)) // Blueprint blue
 					.ToolTipText(FText::FromString(Item->TagInfo.BlueprintPath))
 				]
 
@@ -132,7 +133,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 							SNew(STextBlock)
 							.Text(this, &SN2CGraphListRow::GetCostText)
 							.Font(FAppStyle::GetFontStyle("TinyFont"))
-							.ColorAndOpacity(UIL(N2CUI().AccentGreen)) // Green for cost
+							.ColorAndOpacity(UIBind(&FN2CUIColors::AccentGreen)) // Green for cost
 						]
 					]
 				]
@@ -160,7 +161,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				.Padding(2.0f, 0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+					.ButtonStyle(N2CStyle::Get(), "N2C.SimpleButton")
 					.ToolTipText(LOCTEXT("TranslateTooltip", "Translate this graph"))
 					.OnClicked(this, &SN2CGraphListRow::HandleTranslateClicked)
 					.ContentPadding(FMargin(4.0f, 2.0f))
@@ -178,7 +179,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				.Padding(2.0f, 0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+					.ButtonStyle(N2CStyle::Get(), "N2C.SimpleButton")
 					.ToolTipText(LOCTEXT("JsonExportTooltip", "Export as JSON"))
 					.OnClicked(this, &SN2CGraphListRow::HandleJsonExportClicked)
 					.ContentPadding(FMargin(4.0f, 2.0f))
@@ -196,7 +197,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				.Padding(2.0f, 0.0f)
 				[
 					SNew(SButton)
-					.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+					.ButtonStyle(N2CStyle::Get(), "N2C.SimpleButton")
 					.IsEnabled(this, &SN2CGraphListRow::IsViewButtonEnabled)
 					.ToolTipText(this, &SN2CGraphListRow::GetViewButtonTooltip)
 					.OnClicked(this, &SN2CGraphListRow::HandleViewTranslationClicked)

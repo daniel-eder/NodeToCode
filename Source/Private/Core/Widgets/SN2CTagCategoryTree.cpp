@@ -306,7 +306,7 @@ TSharedRef<ITableRow> SN2CTagCategoryTree::OnGenerateRow(TSharedPtr<FN2CTreeItem
 		: StaticCastSharedRef<SWidget>(
 			SNew(SImage)
 			.Image(FAppStyle::GetBrush("GraphEditor.Bookmark"))
-			.ColorAndOpacity(FSlateColor(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().AccentGold)))
+			.ColorAndOpacity(UIBind(&FN2CUIColors::AccentGold))
 		);
 
 	return SNew(STableRow<TSharedPtr<FN2CTreeItem>>, OwnerTable)

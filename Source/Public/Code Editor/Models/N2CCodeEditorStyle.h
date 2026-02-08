@@ -11,6 +11,7 @@ class FN2CCodeEditorStyle
 public:
     static void Initialize();
     static void Shutdown();
+    static void Reinitialize();
     
     static const ISlateStyle& Get();
     static const FName& GetStyleSetName();

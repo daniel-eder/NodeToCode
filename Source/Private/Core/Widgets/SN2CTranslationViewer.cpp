@@ -13,6 +13,7 @@
 #include "Widgets/Images/SImage.h"
 #include "Styling/AppStyle.h"
 #include "Styling/SlateIconFinder.h"
+#include "Models/N2CStyle.h"
 #include "HAL/PlatformApplicationMisc.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -30,7 +31,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 	[
 		SNew(SBorder)
 		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-		.BorderBackgroundColor(UIL(N2CUI().BgPanel))
+		.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 		.Padding(0)
 		[
 			SNew(SVerticalBox)
@@ -41,7 +42,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			[
 				SNew(SBorder)
 				.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
-				.BorderBackgroundColor(UIL(N2CUI().BgPanelDarker))
+				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 				.Padding(FMargin(12.0f, 10.0f))
 				[
 					SNew(SHorizontalBox)
@@ -53,7 +54,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 						SAssignNew(GraphNameText, STextBlock)
 						.Text(LOCTEXT("NoTranslation", "No Translation Loaded"))
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
-						.ColorAndOpacity(UIL(N2CUI().TextPrimary))
+						.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 					]
 					// Close button
 					+ SHorizontalBox::Slot()
@@ -61,7 +62,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 					.VAlign(VAlign_Center)
 					[
 						SNew(SButton)
-						.ButtonStyle(FAppStyle::Get(), "NoBorder")
+						.ButtonStyle(N2CStyle::Get(), "N2C.NoBorder")
 						.ContentPadding(FMargin(4.0f))
 						.OnClicked(this, &SN2CTranslationViewer::HandleCloseClicked)
 						.ToolTipText(LOCTEXT("CloseTooltip", "Close"))
@@ -69,7 +70,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 							SNew(STextBlock)
 							.Text(FText::FromString(TEXT("\u2715"))) // ✕
 							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 18))
-							.ColorAndOpacity(UIL(N2CUI().TextMuted))
+							.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 						]
 					]
 				]
@@ -81,7 +82,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			[
 				SNew(SBorder)
 				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-				.BorderBackgroundColor(UIL(N2CUI().BgPanel))
+				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 				.Padding(FMargin(12.0f, 8.0f))
 				[
 					SNew(SHorizontalBox)
@@ -119,7 +120,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 					.AutoWidth()
 					[
 						SNew(SButton)
-						.ButtonStyle(FAppStyle::Get(), "Button")
+						.ButtonStyle(N2CStyle::Get(), "N2C.Button")
 						.ContentPadding(FMargin(6.0f, 6.0f))
 						.OnClicked(this, &SN2CTranslationViewer::HandleCopyCodeClicked)
 						.ToolTipText(LOCTEXT("CopyCodeTooltip", "Copy code to clipboard"))
@@ -146,7 +147,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			[
 				SNew(SBorder)
 				.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
-				.BorderBackgroundColor(UIL(N2CUI().BgPanelDarker))
+				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 				.Padding(0)
 				[
 					SAssignNew(CodeEditor, SN2CCodeEditor)
@@ -163,7 +164,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 				.AreaTitle(LOCTEXT("NotesHeader", "Translation Notes"))
 				.InitiallyCollapsed(false)
 				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-				.BorderBackgroundColor(UIL(N2CUI().BgPanelDarker))
+				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 				.HeaderPadding(FMargin(12.0f, 8.0f))
 				.Padding(FMargin(0.0f))
 				.BodyContent()
@@ -173,7 +174,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 					[
 						SNew(SBorder)
 						.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
-						.BorderBackgroundColor(UIL(N2CUI().BgPanelDarker))
+						.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 						.Padding(FMargin(16.0f, 12.0f))
 						[
 							SNew(SHorizontalBox)
@@ -186,7 +187,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 								[
 									SAssignNew(NotesText, STextBlock)
 									.Text(LOCTEXT("NoNotes", "No implementation notes available."))
-									.ColorAndOpacity(UIL(N2CUI().TextSecondary))
+									.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
 									.AutoWrapText(true)
 								]
 							]
@@ -197,7 +198,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 							.Padding(8.0f, 0.0f, 0.0f, 0.0f)
 							[
 								SNew(SButton)
-								.ButtonStyle(FAppStyle::Get(), "Button")
+								.ButtonStyle(N2CStyle::Get(), "N2C.Button")
 								.ContentPadding(FMargin(6.0f, 6.0f))
 								.OnClicked(this, &SN2CTranslationViewer::HandleCopyNotesClicked)
 								.ToolTipText(LOCTEXT("CopyNotesTooltip", "Copy notes to clipboard"))
@@ -228,7 +229,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 TSharedRef<SWidget> SN2CTranslationViewer::CreateFileTab(const FString& Label, const FString& FileType, TSharedPtr<SButton>& OutButton)
 {
 	return SAssignNew(OutButton, SButton)
-		.ButtonStyle(FAppStyle::Get(), "Button")
+		.ButtonStyle(N2CStyle::Get(), "N2C.Button")
 		.ContentPadding(FMargin(12.0f, 4.0f))
 		.OnClicked(this, &SN2CTranslationViewer::HandleFileTabClicked, FileType)
 		[
@@ -454,9 +455,7 @@ FString SN2CTranslationViewer::GetContentForActiveTab() const
 
 const FButtonStyle* SN2CTranslationViewer::GetTabButtonStyle(bool bIsActive) const
 {
-	return bIsActive
-		? &FAppStyle::Get().GetWidgetStyle<FButtonStyle>("PrimaryButton")
-		: &FAppStyle::Get().GetWidgetStyle<FButtonStyle>("Button");
+	return &N2CStyle::Get().GetWidgetStyle<FButtonStyle>("N2C.Button");
 }
 
 FSlateColor SN2CTranslationViewer::GetTabTextColor(FString FileType) const

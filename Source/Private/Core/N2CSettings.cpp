@@ -6,6 +6,8 @@
 #include "Auth/N2CAnthropicOAuthTokenManager.h"
 #include "Auth/N2CGoogleOAuthTokenManager.h"
 #include "Code Editor/Widgets/SN2CCodeEditor.h"
+#include "Code Editor/Models/N2CCodeEditorStyle.h"
+#include "Models/N2CStyle.h"
 #include "Async/AsyncWork.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
@@ -299,9 +301,30 @@ void UN2CSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
                 FString::Printf(TEXT("Estimated reference file tokens: %d"), EstimatedReferenceTokens),
                 EN2CLogSeverity::Info);
 
-            // UpdateSinglePropertyInConfigFile() does not support FFilePath arrays as a property 
+            // UpdateSinglePropertyInConfigFile() does not support FFilePath arrays as a property
             if (bIsArrayChange) { return; }
-            
+
+        }
+
+        // Reinitialize code editor style when theme colors change
+        const FProperty* MemberProp = PropertyChangedEvent.MemberProperty;
+        if (MemberProp)
+        {
+            const FName MemberName = MemberProp->GetFName();
+            if (MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, CPPThemes) ||
+                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, PythonThemes) ||
+                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, JavaScriptThemes) ||
+                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, CSharpThemes) ||
+                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, SwiftThemes) ||
+                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, PseudocodeThemes))
+            {
+                FN2CCodeEditorStyle::Reinitialize();
+            }
+
+            if (MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, UIColors))
+            {
+                N2CStyle::Reinitialize();
+            }
         }
     }
     const FString ConfigPath = GetDefaultConfigFilename();

@@ -10,6 +10,7 @@
 #include "Styling/AppStyle.h"
 #include "Models/N2CLogging.h"
 #include "Core/N2CSettings.h"
+#include "Models/N2CStyle.h"
 
 #define LOCTEXT_NAMESPACE "SN2CBatchProgressModal"
 
@@ -37,7 +38,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 		[
 			SNew(SBorder)
 			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-			.BorderBackgroundColor(UIL(N2CUI().BgPanel))
+			.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 			.Padding(0)
 			[
 				SNew(SVerticalBox)
@@ -48,13 +49,13 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 				[
 					SNew(SBorder)
 					.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-					.BorderBackgroundColor(UIL(N2CUI().BgPanel))
+					.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 					.Padding(FMargin(16.0f, 14.0f))
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("ModalHeader", "Batch Translation in Progress"))
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
-						.ColorAndOpacity(UIL(N2CUI().TextPrimary))
+						.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 					]
 				]
 
@@ -76,14 +77,14 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 						[
 							SNew(STextBlock)
 							.Text(LOCTEXT("ProcessingLabel", "Processing: "))
-							.ColorAndOpacity(UIL(N2CUI().TextSecondary))
+							.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
 						]
 						+ SHorizontalBox::Slot()
 						.FillWidth(1.0f)
 						[
 							SAssignNew(CurrentItemText, STextBlock)
 							.Text(LOCTEXT("Waiting", "Waiting..."))
-							.ColorAndOpacity(UIL(N2CUI().AccentOrange))
+							.ColorAndOpacity(UIBind(&FN2CUIColors::AccentOrange))
 							.Font(FCoreStyle::GetDefaultFontStyle("Mono", 12))
 						]
 					]
@@ -98,7 +99,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 						[
 							SNew(SProgressBar)
 							.Percent(this, &SN2CBatchProgressModal::GetProgressBarPercent)
-							.FillColorAndOpacity(UIL(N2CUI().AccentOrange))
+							.FillColorAndOpacity(UIBind(&FN2CUIColors::AccentOrange))
 							.BackgroundImage(FAppStyle::GetBrush("ProgressBar.Background"))
 						]
 					]
@@ -113,7 +114,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 						[
 							SAssignNew(ProgressCountText, STextBlock)
 							.Text(LOCTEXT("InitialCount", "0 / 0"))
-							.ColorAndOpacity(UIL(N2CUI().TextMuted))
+							.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 11))
 						]
 					]
@@ -127,7 +128,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 						[
 							SNew(SBorder)
 							.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
-							.BorderBackgroundColor(UIL(N2CUI().BgPanelDarker))
+							.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
 							.Padding(0)
 							[
 								SNew(SScrollBox)
@@ -150,14 +151,14 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 				[
 					SNew(SBorder)
 					.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-					.BorderBackgroundColor(UIL(N2CUI().BgPanel))
+					.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
 					.Padding(FMargin(16.0f, 12.0f))
 					[
 						SNew(SBox)
 						.HAlign(HAlign_Right)
 						[
 							SAssignNew(CancelButton, SButton)
-							.ButtonStyle(FAppStyle::Get(), "Button")
+							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
 							.ContentPadding(FMargin(16.0f, 6.0f))
 							.OnClicked(this, &SN2CBatchProgressModal::HandleCancelClicked)
 							[

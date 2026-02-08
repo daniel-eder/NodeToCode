@@ -6,6 +6,7 @@
 #include "Core/Widgets/SN2CContextWindowVisualizer.h"
 #include "Core/N2CTagManager.h"
 #include "Core/N2CSettings.h"
+#include "Models/N2CStyle.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SSplitter.h"
@@ -144,7 +145,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						[
 							SAssignNew(SelectionCountText, STextBlock)
 							.Text(LOCTEXT("NoSelection", "0 graphs selected"))
-							.ColorAndOpacity(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().AccentGold)) // Orange
+							.ColorAndOpacity(UIBind(&FN2CUIColors::AccentGold)) // Orange
 						]
 					]
 					// Action buttons
@@ -159,7 +160,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						.Padding(0.0f, 0.0f, 8.0f, 0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(FAppStyle::Get(), "Button")
+							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
 							.OnClicked(this, &SN2CTagManager::HandleBatchTranslateClicked)
 							.ContentPadding(FMargin(8.0f, 4.0f))
 							[
@@ -188,7 +189,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						.Padding(0.0f, 0.0f, 8.0f, 0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(FAppStyle::Get(), "Button")
+							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
 							.OnClicked(this, &SN2CTagManager::HandleExportJsonClicked)
 							.ContentPadding(FMargin(8.0f, 4.0f))
 							[
@@ -216,7 +217,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						.AutoWidth()
 						[
 							SNew(SButton)
-							.ButtonStyle(FAppStyle::Get(), "Button")
+							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
 							.OnClicked(this, &SN2CTagManager::HandleRemoveSelectedClicked)
 							.ContentPadding(FMargin(8.0f, 4.0f))
 							[
@@ -295,6 +296,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						.VAlign(VAlign_Center)
 						[
 							SNew(SButton)
+							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
 							.Text(LOCTEXT("BrowseButton", "Browse..."))
 							.OnClicked(this, &SN2CTagManager::HandleBrowseClicked)
 						]

@@ -319,6 +319,12 @@ void FN2CCodeEditorStyle::Shutdown()
     }
 }
 
+void FN2CCodeEditorStyle::Reinitialize()
+{
+    Shutdown();
+    Initialize();
+}
+
 const ISlateStyle& FN2CCodeEditorStyle::Get()
 {
     check(StyleSet.IsValid());

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Misc/Attribute.h"
 #include "N2CUserSecrets.h"
 #include "Auth/N2COAuthTypes.h"
 #include "Code Editor/Models/N2CCodeLanguage.h"
@@ -41,6 +42,29 @@ struct FN2CUIColors
 
     UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Backgrounds", meta = (DisplayName = "Button Dark Background Selected"))
     FColor BgButtonDarkSelected = FColor(42, 42, 42);
+
+    // ── Button Style Colors ───────────────────────────────────────
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Buttons", meta = (DisplayName = "Button Normal"))
+    FColor BtnNormal = FColor(55, 55, 55);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Buttons", meta = (DisplayName = "Button Hovered"))
+    FColor BtnHovered = FColor(70, 70, 70);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Buttons", meta = (DisplayName = "Button Pressed"))
+    FColor BtnPressed = FColor(40, 40, 40);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Buttons", meta = (DisplayName = "Button Disabled"))
+    FColor BtnDisabled = FColor(35, 35, 35);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Buttons", meta = (DisplayName = "Button Foreground"))
+    FColor BtnForeground = FColor(204, 204, 204);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Buttons", meta = (DisplayName = "Button Foreground Hovered"))
+    FColor BtnForegroundHover = FColor(230, 230, 230);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Buttons", meta = (DisplayName = "Button Foreground Disabled"))
+    FColor BtnForegroundDisabled = FColor(107, 107, 107);
 
     // ── Border Colors ──────────────────────────────────────────────
 
@@ -86,6 +110,9 @@ struct FN2CUIColors
 
     UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Accents", meta = (DisplayName = "Accent Blue"))
     FColor AccentBlue = FColor(79, 194, 255);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Accents", meta = (DisplayName = "Accent Yellow"))
+    FColor AccentYellow = FColor(229, 192, 123);
 
     // ── Helper Methods ─────────────────────────────────────────────
 
@@ -828,3 +855,20 @@ private:
 inline const FN2CUIColors& N2CUI() { return UN2CSettings::GetUIColors(); }
 inline FLinearColor UIL(const FColor& C) { return FN2CUIColors::ToLinear(C); }
 inline FLinearColor UILA(const FColor& C, float A) { return FN2CUIColors::ToLinearWithAlpha(C, A); }
+
+// TAttribute-bound UI color accessors for live settings updates (unity-build safe)
+inline TAttribute<FSlateColor> UIBind(FColor FN2CUIColors::* Member)
+{
+    return TAttribute<FSlateColor>::CreateLambda([Member]() -> FSlateColor
+    {
+        return FSlateColor(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().*Member));
+    });
+}
+
+inline TAttribute<FSlateColor> UIBindAlpha(FColor FN2CUIColors::* Member, float Alpha)
+{
+    return TAttribute<FSlateColor>::CreateLambda([Member, Alpha]() -> FSlateColor
+    {
+        return FSlateColor(FN2CUIColors::ToLinearWithAlpha(UN2CSettings::GetUIColors().*Member, Alpha));
+    });
+}

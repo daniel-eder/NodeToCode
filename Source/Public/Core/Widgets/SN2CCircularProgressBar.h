@@ -85,10 +85,4 @@ private:
 	TAttribute<float> Radius;
 	TAttribute<float> Thickness;
 	FSimpleDelegate OnClickedDelegate;
-
-	// Color constants matching the visualizer's color scheme
-	static const FLinearColor ColorGreen;
-	static const FLinearColor ColorYellow;
-	static const FLinearColor ColorRed;
-	static const FLinearColor ColorBackground;
 };

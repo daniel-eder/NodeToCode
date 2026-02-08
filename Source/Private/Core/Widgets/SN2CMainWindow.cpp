@@ -67,7 +67,7 @@ void SN2CMainWindow::Construct(const FArguments& InArgs)
 			[
 				SNew(SBorder)
 				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-				.BorderBackgroundColor(UILA(N2CUI().BgPanelDarker, 0.30f))
+				.BorderBackgroundColor(UIBindAlpha(&FN2CUIColors::BgPanelDarker, 0.30f))
 				.Padding(20.0f)
 				[
 					SAssignNew(TranslationViewer, SN2CTranslationViewer)
@@ -82,7 +82,7 @@ void SN2CMainWindow::Construct(const FArguments& InArgs)
 			SNew(SBorder)
 			.Visibility(this, &SN2CMainWindow::GetBatchProgressVisibility)
 			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-			.BorderBackgroundColor(UILA(N2CUI().BgPanelDarker, 0.30f))
+			.BorderBackgroundColor(UIBindAlpha(&FN2CUIColors::BgPanelDarker, 0.30f))
 			.Padding(0.0f)
 			[
 				// Center the modal within the full-screen overlay

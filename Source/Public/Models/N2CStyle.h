@@ -9,6 +9,7 @@ class N2CStyle : public FSlateStyleSet
 public:
     static void Initialize();
     static void Shutdown();
+    static void Reinitialize();
     static const ISlateStyle& Get();
     virtual const FName& GetStyleSetName() const override;
     
@@ -17,6 +18,7 @@ public:
 
 private:
     static TSharedRef<FSlateStyleSet> Create();
+    static void InitializeButtonStyles(FSlateStyleSet& Style);
     static TSharedPtr<FSlateStyleSet> StyleInstance;
 };
 

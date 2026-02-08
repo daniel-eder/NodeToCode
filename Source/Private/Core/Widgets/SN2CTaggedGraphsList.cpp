@@ -10,6 +10,7 @@
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SButton.h"
 #include "Styling/AppStyle.h"
+#include "Models/N2CStyle.h"
 #include "Misc/Paths.h"
 #include "Models/N2CLogging.h"
 
@@ -45,7 +46,7 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 		.HeaderContent()
 		[
 			SNew(SButton)
-			.ButtonStyle(FAppStyle::Get(), "NoBorder")
+			.ButtonStyle(N2CStyle::Get(), "N2C.NoBorder")
 			.ContentPadding(0.0f)
 			.OnClicked(this, &SN2CTaggedGraphsList::OnSelectAllClicked)
 			[
