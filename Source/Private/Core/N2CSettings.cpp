@@ -323,7 +323,7 @@ void UN2CSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
             if (MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, UIColors))
             {
-                N2CStyle::Reinitialize();
+                N2CStyle::UpdateButtonStyles();
             }
         }
     }

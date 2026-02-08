@@ -46,7 +46,7 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 		.HeaderContent()
 		[
 			SNew(SButton)
-			.ButtonStyle(N2CStyle::Get(), "N2C.NoBorder")
+			.ButtonStyle(&N2CStyle::GetNoBorderStyle())
 			.ContentPadding(0.0f)
 			.OnClicked(this, &SN2CTaggedGraphsList::OnSelectAllClicked)
 			[

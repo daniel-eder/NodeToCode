@@ -62,7 +62,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 					.VAlign(VAlign_Center)
 					[
 						SNew(SButton)
-						.ButtonStyle(N2CStyle::Get(), "N2C.NoBorder")
+						.ButtonStyle(&N2CStyle::GetNoBorderStyle())
 						.ContentPadding(FMargin(4.0f))
 						.OnClicked(this, &SN2CTranslationViewer::HandleCloseClicked)
 						.ToolTipText(LOCTEXT("CloseTooltip", "Close"))
@@ -120,7 +120,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 					.AutoWidth()
 					[
 						SNew(SButton)
-						.ButtonStyle(N2CStyle::Get(), "N2C.Button")
+						.ButtonStyle(&N2CStyle::GetButtonStyle())
 						.ContentPadding(FMargin(6.0f, 6.0f))
 						.OnClicked(this, &SN2CTranslationViewer::HandleCopyCodeClicked)
 						.ToolTipText(LOCTEXT("CopyCodeTooltip", "Copy code to clipboard"))
@@ -198,7 +198,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 							.Padding(8.0f, 0.0f, 0.0f, 0.0f)
 							[
 								SNew(SButton)
-								.ButtonStyle(N2CStyle::Get(), "N2C.Button")
+								.ButtonStyle(&N2CStyle::GetButtonStyle())
 								.ContentPadding(FMargin(6.0f, 6.0f))
 								.OnClicked(this, &SN2CTranslationViewer::HandleCopyNotesClicked)
 								.ToolTipText(LOCTEXT("CopyNotesTooltip", "Copy notes to clipboard"))
@@ -229,7 +229,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 TSharedRef<SWidget> SN2CTranslationViewer::CreateFileTab(const FString& Label, const FString& FileType, TSharedPtr<SButton>& OutButton)
 {
 	return SAssignNew(OutButton, SButton)
-		.ButtonStyle(N2CStyle::Get(), "N2C.Button")
+		.ButtonStyle(&N2CStyle::GetButtonStyle())
 		.ContentPadding(FMargin(12.0f, 4.0f))
 		.OnClicked(this, &SN2CTranslationViewer::HandleFileTabClicked, FileType)
 		[
@@ -455,7 +455,7 @@ FString SN2CTranslationViewer::GetContentForActiveTab() const
 
 const FButtonStyle* SN2CTranslationViewer::GetTabButtonStyle(bool bIsActive) const
 {
-	return &N2CStyle::Get().GetWidgetStyle<FButtonStyle>("N2C.Button");
+	return &N2CStyle::GetButtonStyle();
 }
 
 FSlateColor SN2CTranslationViewer::GetTabTextColor(FString FileType) const

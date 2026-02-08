@@ -160,7 +160,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						.Padding(0.0f, 0.0f, 8.0f, 0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
+							.ButtonStyle(&N2CStyle::GetButtonStyle())
 							.OnClicked(this, &SN2CTagManager::HandleBatchTranslateClicked)
 							.ContentPadding(FMargin(8.0f, 4.0f))
 							[
@@ -189,7 +189,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						.Padding(0.0f, 0.0f, 8.0f, 0.0f)
 						[
 							SNew(SButton)
-							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
+							.ButtonStyle(&N2CStyle::GetButtonStyle())
 							.OnClicked(this, &SN2CTagManager::HandleExportJsonClicked)
 							.ContentPadding(FMargin(8.0f, 4.0f))
 							[
@@ -217,7 +217,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						.AutoWidth()
 						[
 							SNew(SButton)
-							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
+							.ButtonStyle(&N2CStyle::GetButtonStyle())
 							.OnClicked(this, &SN2CTagManager::HandleRemoveSelectedClicked)
 							.ContentPadding(FMargin(8.0f, 4.0f))
 							[
@@ -296,7 +296,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						.VAlign(VAlign_Center)
 						[
 							SNew(SButton)
-							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
+							.ButtonStyle(&N2CStyle::GetButtonStyle())
 							.Text(LOCTEXT("BrowseButton", "Browse..."))
 							.OnClicked(this, &SN2CTagManager::HandleBrowseClicked)
 						]

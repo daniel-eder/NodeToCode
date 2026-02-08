@@ -158,7 +158,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 						.HAlign(HAlign_Right)
 						[
 							SAssignNew(CancelButton, SButton)
-							.ButtonStyle(N2CStyle::Get(), "N2C.Button")
+							.ButtonStyle(&N2CStyle::GetButtonStyle())
 							.ContentPadding(FMargin(16.0f, 6.0f))
 							.OnClicked(this, &SN2CBatchProgressModal::HandleCancelClicked)
 							[

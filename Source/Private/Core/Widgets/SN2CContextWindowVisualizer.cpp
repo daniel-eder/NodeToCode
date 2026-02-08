@@ -98,7 +98,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
-					.ButtonStyle(N2CStyle::Get(), "N2C.SimpleButton")
+					.ButtonStyle(&N2CStyle::GetSimpleButtonStyle())
 					.OnClicked(this, &SN2CContextWindowVisualizer::OnSettingsClicked)
 					.ToolTipText(LOCTEXT("SettingsTooltip", "Open NodeToCode Settings"))
 					.ContentPadding(FMargin(2.0f))

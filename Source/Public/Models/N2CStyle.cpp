@@ -3,10 +3,14 @@
 #include "N2CStyle.h"
 #include "Core/N2CSettings.h"
 #include "Styling/SlateStyleRegistry.h"
-#include "Styling/SlateTypes.h"
 #include "Framework/Application/SlateApplication.h"
 
 TSharedPtr<FSlateStyleSet> N2CStyle::StyleInstance = nullptr;
+
+// Static FButtonStyle instances — stable addresses allow SButton to see live updates
+FButtonStyle N2CStyle::N2CButtonStyle;
+FButtonStyle N2CStyle::N2CSimpleButtonStyle;
+FButtonStyle N2CStyle::N2CNoBorderStyle;
 
 void N2CStyle::Initialize()
 {
@@ -53,6 +57,10 @@ const FName& N2CStyle::GetStyleSetName() const
     return StyleName;
 }
 
+const FButtonStyle& N2CStyle::GetButtonStyle() { return N2CButtonStyle; }
+const FButtonStyle& N2CStyle::GetSimpleButtonStyle() { return N2CSimpleButtonStyle; }
+const FButtonStyle& N2CStyle::GetNoBorderStyle() { return N2CNoBorderStyle; }
+
 TSharedRef<FSlateStyleSet> N2CStyle::Create()
 {
     static FName StyleSetName(TEXT("NodeToCodeStyle"));
@@ -64,13 +72,13 @@ TSharedRef<FSlateStyleSet> N2CStyle::Create()
     Style->Set("NodeToCode.ToolbarButton",
         new N2C_PLUGIN_BRUSH(TEXT("button_icon"), FVector2D(128.0f, 128.0f)));
 
-    // Register button styles from UI palette
-    InitializeButtonStyles(*Style);
+    // Populate button styles from current palette
+    UpdateButtonStyles();
 
     return Style;
 }
 
-void N2CStyle::InitializeButtonStyles(FSlateStyleSet& Style)
+void N2CStyle::UpdateButtonStyles()
 {
 	const FN2CUIColors& Colors = UN2CSettings::GetUIColors();
 
@@ -78,51 +86,39 @@ void N2CStyle::InitializeButtonStyles(FSlateStyleSet& Style)
 	const FSlateColor HoveredFg(FN2CUIColors::ToLinear(Colors.BtnForegroundHover));
 	const FSlateColor DisabledFg(FN2CUIColors::ToLinear(Colors.BtnForegroundDisabled));
 
-	// ── N2C.Button ── Solid background action buttons (replaces FAppStyle "Button")
-	{
-		FButtonStyle ButtonStyle;
-		ButtonStyle.SetNormal(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnNormal)));
-		ButtonStyle.SetHovered(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnHovered)));
-		ButtonStyle.SetPressed(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnPressed)));
-		ButtonStyle.SetDisabled(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnDisabled)));
-		ButtonStyle.SetNormalForeground(NormalFg);
-		ButtonStyle.SetHoveredForeground(HoveredFg);
-		ButtonStyle.SetPressedForeground(NormalFg);
-		ButtonStyle.SetDisabledForeground(DisabledFg);
-		ButtonStyle.SetNormalPadding(FMargin(4.0f, 2.0f));
-		ButtonStyle.SetPressedPadding(FMargin(4.0f, 3.0f, 4.0f, 1.0f));
-		Style.Set("N2C.Button", ButtonStyle);
-	}
+	// ── N2C.Button ── Solid background action buttons
+	N2CButtonStyle.SetNormal(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnNormal)));
+	N2CButtonStyle.SetHovered(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnHovered)));
+	N2CButtonStyle.SetPressed(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnPressed)));
+	N2CButtonStyle.SetDisabled(FSlateColorBrush(FN2CUIColors::ToLinear(Colors.BtnDisabled)));
+	N2CButtonStyle.SetNormalForeground(NormalFg);
+	N2CButtonStyle.SetHoveredForeground(HoveredFg);
+	N2CButtonStyle.SetPressedForeground(NormalFg);
+	N2CButtonStyle.SetDisabledForeground(DisabledFg);
+	N2CButtonStyle.SetNormalPadding(FMargin(4.0f, 2.0f));
+	N2CButtonStyle.SetPressedPadding(FMargin(4.0f, 3.0f, 4.0f, 1.0f));
 
-	// ── N2C.SimpleButton ── Transparent/minimal icon buttons (replaces FAppStyle "SimpleButton")
-	{
-		FButtonStyle SimpleStyle;
-		SimpleStyle.SetNormal(FSlateNoResource());
-		SimpleStyle.SetHovered(FSlateColorBrush(FN2CUIColors::ToLinearWithAlpha(Colors.BtnHovered, 0.5f)));
-		SimpleStyle.SetPressed(FSlateColorBrush(FN2CUIColors::ToLinearWithAlpha(Colors.BtnPressed, 0.6f)));
-		SimpleStyle.SetDisabled(FSlateNoResource());
-		SimpleStyle.SetNormalForeground(NormalFg);
-		SimpleStyle.SetHoveredForeground(HoveredFg);
-		SimpleStyle.SetPressedForeground(NormalFg);
-		SimpleStyle.SetDisabledForeground(DisabledFg);
-		SimpleStyle.SetNormalPadding(FMargin(0.0f));
-		SimpleStyle.SetPressedPadding(FMargin(0.0f));
-		Style.Set("N2C.SimpleButton", SimpleStyle);
-	}
+	// ── N2C.SimpleButton ── Transparent/minimal icon buttons
+	N2CSimpleButtonStyle.SetNormal(FSlateNoResource());
+	N2CSimpleButtonStyle.SetHovered(FSlateColorBrush(FN2CUIColors::ToLinearWithAlpha(Colors.BtnHovered, 0.5f)));
+	N2CSimpleButtonStyle.SetPressed(FSlateColorBrush(FN2CUIColors::ToLinearWithAlpha(Colors.BtnPressed, 0.6f)));
+	N2CSimpleButtonStyle.SetDisabled(FSlateNoResource());
+	N2CSimpleButtonStyle.SetNormalForeground(NormalFg);
+	N2CSimpleButtonStyle.SetHoveredForeground(HoveredFg);
+	N2CSimpleButtonStyle.SetPressedForeground(NormalFg);
+	N2CSimpleButtonStyle.SetDisabledForeground(DisabledFg);
+	N2CSimpleButtonStyle.SetNormalPadding(FMargin(0.0f));
+	N2CSimpleButtonStyle.SetPressedPadding(FMargin(0.0f));
 
-	// ── N2C.NoBorder ── Completely invisible button for wrappers/close (replaces FAppStyle "NoBorder")
-	{
-		FButtonStyle NoBorderStyle;
-		NoBorderStyle.SetNormal(FSlateNoResource());
-		NoBorderStyle.SetHovered(FSlateNoResource());
-		NoBorderStyle.SetPressed(FSlateNoResource());
-		NoBorderStyle.SetDisabled(FSlateNoResource());
-		NoBorderStyle.SetNormalForeground(NormalFg);
-		NoBorderStyle.SetHoveredForeground(HoveredFg);
-		NoBorderStyle.SetPressedForeground(NormalFg);
-		NoBorderStyle.SetDisabledForeground(DisabledFg);
-		NoBorderStyle.SetNormalPadding(FMargin(0.0f));
-		NoBorderStyle.SetPressedPadding(FMargin(0.0f));
-		Style.Set("N2C.NoBorder", NoBorderStyle);
-	}
+	// ── N2C.NoBorder ── Completely invisible button for wrappers/close
+	N2CNoBorderStyle.SetNormal(FSlateNoResource());
+	N2CNoBorderStyle.SetHovered(FSlateNoResource());
+	N2CNoBorderStyle.SetPressed(FSlateNoResource());
+	N2CNoBorderStyle.SetDisabled(FSlateNoResource());
+	N2CNoBorderStyle.SetNormalForeground(NormalFg);
+	N2CNoBorderStyle.SetHoveredForeground(HoveredFg);
+	N2CNoBorderStyle.SetPressedForeground(NormalFg);
+	N2CNoBorderStyle.SetDisabledForeground(DisabledFg);
+	N2CNoBorderStyle.SetNormalPadding(FMargin(0.0f));
+	N2CNoBorderStyle.SetPressedPadding(FMargin(0.0f));
 }
