@@ -63,6 +63,8 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 				.Padding(0.0f, 0.0f, 12.0f, 0.0f)
 				[
 					SAssignNew(ProviderComboBox, SComboBox<TSharedPtr<FString>>)
+					.ComboBoxStyle(&N2CStyle::GetComboBoxStyle())
+					.ItemStyle(&N2CStyle::GetComboRowStyle())
 					.OptionsSource(&ProviderOptions)
 					.OnSelectionChanged(this, &SN2CContextWindowVisualizer::OnProviderSelectionChanged)
 					.OnGenerateWidget(this, &SN2CContextWindowVisualizer::GenerateProviderWidget)
@@ -305,6 +307,8 @@ void SN2CContextWindowVisualizer::RebuildModelSelectionWidget()
 		PopulateModelOptions();
 		ModelSelectionContainer->SetContent(
 			SAssignNew(ModelComboBox, SComboBox<TSharedPtr<FString>>)
+			.ComboBoxStyle(&N2CStyle::GetComboBoxStyle())
+			.ItemStyle(&N2CStyle::GetComboRowStyle())
 			.OptionsSource(&ModelOptions)
 			.OnSelectionChanged(this, &SN2CContextWindowVisualizer::OnModelSelectionChanged)
 			.OnGenerateWidget(this, &SN2CContextWindowVisualizer::GenerateModelWidget)

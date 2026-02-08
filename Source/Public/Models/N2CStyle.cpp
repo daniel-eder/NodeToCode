@@ -17,6 +17,10 @@ FButtonStyle N2CStyle::N2CNoBorderStyle;
 FSlateBrush N2CStyle::N2CPanelBorderBrush;
 FSlateBrush N2CStyle::N2CDarkPanelBorderBrush;
 
+// Static combo box styles — stable addresses allow SComboBox to see live updates
+FComboBoxStyle N2CStyle::N2CComboBoxStyle;
+FTableRowStyle N2CStyle::N2CComboRowStyle;
+
 void N2CStyle::Initialize()
 {
 	if (!StyleInstance.IsValid())
@@ -67,6 +71,8 @@ const FButtonStyle& N2CStyle::GetSimpleButtonStyle() { return N2CSimpleButtonSty
 const FButtonStyle& N2CStyle::GetNoBorderStyle() { return N2CNoBorderStyle; }
 const FSlateBrush& N2CStyle::GetPanelBorderBrush() { return N2CPanelBorderBrush; }
 const FSlateBrush& N2CStyle::GetDarkPanelBorderBrush() { return N2CDarkPanelBorderBrush; }
+const FComboBoxStyle& N2CStyle::GetComboBoxStyle() { return N2CComboBoxStyle; }
+const FTableRowStyle& N2CStyle::GetComboRowStyle() { return N2CComboRowStyle; }
 
 TSharedRef<FSlateStyleSet> N2CStyle::Create()
 {
@@ -82,6 +88,7 @@ TSharedRef<FSlateStyleSet> N2CStyle::Create()
     // Populate styles from current palette
     UpdateButtonStyles();
     UpdateBorderBrushes();
+    UpdateComboBoxStyle();
 
     return Style;
 }
@@ -146,4 +153,58 @@ void N2CStyle::UpdateBorderBrushes()
 		FLinearColor::White, 4.0f,
 		FN2CUIColors::ToLinear(Colors.BorderSubtle), 1.0f
 	);
+}
+
+void N2CStyle::UpdateComboBoxStyle()
+{
+	const FN2CUIColors& Colors = UN2CSettings::GetUIColors();
+
+	const FSlateColor NormalFg(FN2CUIColors::ToLinear(Colors.BtnForeground));
+	const FSlateColor HoveredFg(FN2CUIColors::ToLinear(Colors.BtnForegroundHover));
+	const FSlateColor DisabledFg(FN2CUIColors::ToLinear(Colors.BtnForegroundDisabled));
+
+	// ── Combo button style ──
+	FButtonStyle ComboBtn;
+	ComboBtn.SetNormal(FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BgInput), 4.0f));
+	ComboBtn.SetHovered(FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BgHover), 4.0f));
+	ComboBtn.SetPressed(FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BtnPressed), 4.0f));
+	ComboBtn.SetDisabled(FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BtnDisabled), 4.0f));
+	ComboBtn.SetNormalForeground(NormalFg);
+	ComboBtn.SetHoveredForeground(HoveredFg);
+	ComboBtn.SetPressedForeground(NormalFg);
+	ComboBtn.SetDisabledForeground(DisabledFg);
+	ComboBtn.SetNormalPadding(FMargin(4.0f, 2.0f));
+	ComboBtn.SetPressedPadding(FMargin(4.0f, 3.0f, 4.0f, 1.0f));
+
+	N2CComboBoxStyle.ComboButtonStyle.SetButtonStyle(ComboBtn);
+
+	// Copy the engine's registered down arrow brush and tint with our foreground color
+	const FComboButtonStyle& EngineComboBtn = FAppStyle::Get().GetWidgetStyle<FComboButtonStyle>("ComboButton");
+	FSlateBrush ArrowBrush = EngineComboBtn.DownArrowImage;
+	ArrowBrush.TintColor = NormalFg;
+	N2CComboBoxStyle.ComboButtonStyle.SetDownArrowImage(ArrowBrush);
+	N2CComboBoxStyle.ComboButtonStyle.SetDownArrowPadding(FMargin(2.0f, 0.0f));
+
+	N2CComboBoxStyle.ComboButtonStyle.SetMenuBorderBrush(
+		FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BgPanelDarker), 4.0f,
+			FN2CUIColors::ToLinear(Colors.BorderColor), 1.0f));
+	N2CComboBoxStyle.ComboButtonStyle.SetMenuBorderPadding(FMargin(2.0f));
+	N2CComboBoxStyle.SetContentPadding(FMargin(4.0f, 2.0f));
+	N2CComboBoxStyle.SetMenuRowPadding(FMargin(2.0f));
+
+	// ── Dropdown row style ──
+	const FSlateBrush TransparentBrush = FSlateNoResource();
+	const FSlateBrush HoverBrush = FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BgHover), 4.0f);
+	const FSlateBrush ActiveBrush = FSlateRoundedBoxBrush(FN2CUIColors::ToLinear(Colors.BtnPressed), 4.0f);
+
+	N2CComboRowStyle.SetEvenRowBackgroundBrush(TransparentBrush);
+	N2CComboRowStyle.SetOddRowBackgroundBrush(TransparentBrush);
+	N2CComboRowStyle.SetEvenRowBackgroundHoveredBrush(HoverBrush);
+	N2CComboRowStyle.SetOddRowBackgroundHoveredBrush(HoverBrush);
+	N2CComboRowStyle.SetActiveBrush(ActiveBrush);
+	N2CComboRowStyle.SetActiveHoveredBrush(HoverBrush);
+	N2CComboRowStyle.SetInactiveBrush(ActiveBrush);
+	N2CComboRowStyle.SetInactiveHoveredBrush(HoverBrush);
+	N2CComboRowStyle.SetTextColor(FSlateColor(FN2CUIColors::ToLinear(Colors.TextPrimary)));
+	N2CComboRowStyle.SetSelectedTextColor(FSlateColor(FN2CUIColors::ToLinear(Colors.TextPrimary)));
 }

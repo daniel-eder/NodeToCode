@@ -26,9 +26,14 @@ public:
     static const FSlateBrush& GetPanelBorderBrush();
     static const FSlateBrush& GetDarkPanelBorderBrush();
 
+    // Combo box style accessors — return stable pointers for live updates
+    static const FComboBoxStyle& GetComboBoxStyle();
+    static const FTableRowStyle& GetComboRowStyle();
+
     // Update styles in-place from current palette (called on settings change)
     static void UpdateButtonStyles();
     static void UpdateBorderBrushes();
+    static void UpdateComboBoxStyle();
 
 private:
     static TSharedRef<FSlateStyleSet> Create();
@@ -42,6 +47,10 @@ private:
     // Static FSlateBrush instances for panel borders (assigned FSlateRoundedBoxBrush values)
     static FSlateBrush N2CPanelBorderBrush;
     static FSlateBrush N2CDarkPanelBorderBrush;
+
+    // Static combo box styles
+    static FComboBoxStyle N2CComboBoxStyle;
+    static FTableRowStyle N2CComboRowStyle;
 };
 
 // Add macro for plugin brushes

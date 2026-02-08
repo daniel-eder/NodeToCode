@@ -660,6 +660,8 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 				.Visibility(TagOptions.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed)
 				[
 					SAssignNew(TagComboBox, SComboBox<TSharedPtr<FString>>)
+					.ComboBoxStyle(&N2CStyle::GetComboBoxStyle())
+					.ItemStyle(&N2CStyle::GetComboRowStyle())
 					.OptionsSource(&TagOptions)
 					.OnGenerateWidget_Lambda([](TSharedPtr<FString> Item)
 					{
@@ -718,6 +720,8 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 			[
 				SAssignNew(CategoryComboBox, SComboBox<TSharedPtr<FString>>)
+				.ComboBoxStyle(&N2CStyle::GetComboBoxStyle())
+				.ItemStyle(&N2CStyle::GetComboRowStyle())
 				.OptionsSource(&CategoryOptions)
 				.OnGenerateWidget_Lambda([](TSharedPtr<FString> Item)
 				{
