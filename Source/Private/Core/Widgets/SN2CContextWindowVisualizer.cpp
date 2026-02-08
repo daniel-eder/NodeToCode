@@ -17,17 +17,6 @@
 
 #define LOCTEXT_NAMESPACE "SN2CContextWindowVisualizer"
 
-// Color scheme (reusing from SN2CBatchProgressModal)
-namespace N2CVisualizerColors
-{
-	const FLinearColor BgPanel = FLinearColor::FromSRGBColor(FColor(37, 37, 38));
-	const FLinearColor TextPrimary = FLinearColor::FromSRGBColor(FColor(204, 204, 204));
-	const FLinearColor TextSecondary = FLinearColor::FromSRGBColor(FColor(157, 157, 157));
-	const FLinearColor TextMuted = FLinearColor::FromSRGBColor(FColor(107, 107, 107));
-	const FLinearColor AccentOrange = FLinearColor::FromSRGBColor(FColor(212, 160, 74));
-	const FLinearColor AccentGreen = FLinearColor::FromSRGBColor(FColor(78, 201, 176));
-}
-
 void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 {
 	// Initialize provider and model options
@@ -64,7 +53,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 				[
 					SNew(STextBlock)
 					.Text(LOCTEXT("ProviderLabel", "Provider: "))
-					.ColorAndOpacity(N2CVisualizerColors::TextSecondary)
+					.ColorAndOpacity(UIL(N2CUI().TextSecondary))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -79,7 +68,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(this, &SN2CContextWindowVisualizer::GetCurrentProviderText)
-						.ColorAndOpacity(N2CVisualizerColors::AccentOrange)
+						.ColorAndOpacity(UIL(N2CUI().AccentOrange))
 					]
 				]
 
@@ -90,7 +79,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 				[
 					SNew(STextBlock)
 					.Text(LOCTEXT("ModelLabel", "Model: "))
-					.ColorAndOpacity(N2CVisualizerColors::TextSecondary)
+					.ColorAndOpacity(UIL(N2CUI().TextSecondary))
 				]
 
 				// Model selection container (will hold either dropdown or text input)
@@ -115,7 +104,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 					[
 						SNew(SImage)
 						.Image(FSlateIcon(FName("CoreStyle"), "Icons.Toolbar.Settings").GetIcon())
-						.ColorAndOpacity(N2CVisualizerColors::TextSecondary)
+						.ColorAndOpacity(UIL(N2CUI().TextSecondary))
 					]
 				]
 			]
@@ -127,7 +116,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 			[
 				SAssignNew(TokenCountTextBlock, STextBlock)
 				.Text(this, &SN2CContextWindowVisualizer::GetTokenCountText)
-				.ColorAndOpacity(N2CVisualizerColors::TextPrimary)
+				.ColorAndOpacity(UIL(N2CUI().TextPrimary))
 			]
 
 			// Estimated batch cost row
@@ -136,7 +125,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 			[
 				SAssignNew(CostTextBlock, STextBlock)
 				.Text(this, &SN2CContextWindowVisualizer::GetEstimatedCostText)
-				.ColorAndOpacity(N2CVisualizerColors::AccentGreen)
+				.ColorAndOpacity(UIL(N2CUI().AccentGreen))
 			]
 
 			// Nested translation warning row (only visible when nesting is enabled)
@@ -162,7 +151,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(FText::FromString(TEXT("\u26A0"))) // Warning symbol
-						.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.6f, 0.2f)))
+						.ColorAndOpacity(FSlateColor(UIL(N2CUI().AccentOrange)))
 					]
 					+ SHorizontalBox::Slot()
 					.FillWidth(1.0f)
@@ -170,7 +159,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(this, &SN2CContextWindowVisualizer::GetNestingInfoText)
-						.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.6f, 0.2f)))
+						.ColorAndOpacity(FSlateColor(UIL(N2CUI().AccentOrange)))
 						.AutoWrapText(true)
 					]
 				]
@@ -320,7 +309,7 @@ void SN2CContextWindowVisualizer::RebuildModelSelectionWidget()
 			[
 				SNew(STextBlock)
 				.Text(this, &SN2CContextWindowVisualizer::GetModelNameText)
-				.ColorAndOpacity(N2CVisualizerColors::AccentOrange)
+				.ColorAndOpacity(UIL(N2CUI().AccentOrange))
 			]
 		);
 	}

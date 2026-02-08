@@ -28,6 +28,7 @@
 #include "Widgets/Input/SComboBox.h"
 #include "Styling/AppStyle.h"
 #include "HAL/PlatformApplicationMisc.h"
+#include "Core/N2CSettings.h"
 
 #define LOCTEXT_NAMESPACE "SN2CGraphOverlay"
 
@@ -67,7 +68,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 	[
 		SNew(SBorder)
 		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-		.BorderBackgroundColor(FLinearColor(0.02f, 0.02f, 0.02f, 0.85f))
+		.BorderBackgroundColor(UILA(N2CUI().BgOverlayPanel, 0.85f))
 		.Padding(FMargin(6.0f, 4.0f))
 		[
 			SNew(SHorizontalBox)
@@ -105,7 +106,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 						SNew(STextBlock)
 						.Text(LOCTEXT("N2CBranding", "N2C"))
 						.TextStyle(FAppStyle::Get(), "SmallText")
-						.ColorAndOpacity(FSlateColor(FLinearColor(0.7f, 0.7f, 0.7f)))
+						.ColorAndOpacity(FSlateColor(UIL(N2CUI().TextSecondary)))
 					]
 				]
 			]
@@ -295,7 +296,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 						.Text(this, &SN2CGraphOverlay::GetContextUsagePercentText)
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 7))
 						.Justification(ETextJustify::Center)
-						.ColorAndOpacity(FSlateColor(FLinearColor(0.8f, 0.8f, 0.8f)))
+						.ColorAndOpacity(FSlateColor(UIL(N2CUI().TextPrimary)))
 					]
 				]
 			]
@@ -333,7 +334,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 							return FText::FromString(FString::Printf(TEXT("N:%d"), Depth));
 						})
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 7))
-						.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.6f, 0.2f))) // Orange to indicate active nesting
+						.ColorAndOpacity(FSlateColor(UIL(N2CUI().AccentOrange))) // Orange to indicate active nesting
 					]
 				]
 			]
@@ -542,7 +543,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 					[
 						SNew(SImage)
 						.Image(FAppStyle::GetBrush("Icons.X"))
-						.ColorAndOpacity(FSlateColor(FLinearColor(0.8f, 0.2f, 0.2f)))
+						.ColorAndOpacity(FSlateColor(UIL(N2CUI().AccentRed)))
 					]
 				]
 			];
@@ -770,7 +771,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 			[
 				SNew(SImage)
 				.Image(FAppStyle::GetBrush("Icons.Plus"))
-				.ColorAndOpacity(FSlateColor(FLinearColor(0.2f, 0.8f, 0.2f)))
+				.ColorAndOpacity(FSlateColor(UIL(N2CUI().AccentGreen)))
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -897,9 +898,9 @@ FSlateColor SN2CGraphOverlay::GetTagButtonColor() const
 {
 	if (CachedTagCount > 0)
 	{
-		return FSlateColor(FLinearColor(0.83f, 0.63f, 0.29f)); // Gold/amber for tagged
+		return FSlateColor(UIL(N2CUI().AccentGold)); // Gold/amber for tagged
 	}
-	return FSlateColor(FLinearColor(0.5f, 0.5f, 0.5f)); // Gray for untagged
+	return FSlateColor(UIL(N2CUI().TextMuted)); // Gray for untagged
 }
 
 void SN2CGraphOverlay::RefreshTokenEstimate()

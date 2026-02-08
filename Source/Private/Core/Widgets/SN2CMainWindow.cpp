@@ -17,6 +17,7 @@
 #include "Core/N2CNodeTranslator.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SBackgroundBlur.h"
 #include "Layout/Visibility.h"
 #include "Styling/AppStyle.h"
 #include "Misc/FileHelper.h"
@@ -24,15 +25,9 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Editor.h"
+#include "Core/N2CSettings.h"
 
 #define LOCTEXT_NAMESPACE "SN2CMainWindow"
-
-// NodeToCode color scheme
-namespace N2CMainWindowColors
-{
-	const FLinearColor BgPanel = FLinearColor::FromSRGBColor(FColor(37, 37, 38));
-	const FLinearColor BgOverlay = FLinearColor(0.0f, 0.0f, 0.0f, 0.7f); // Semi-transparent black for overlay background
-}
 
 void SN2CMainWindow::Construct(const FArguments& InArgs)
 {
@@ -66,14 +61,18 @@ void SN2CMainWindow::Construct(const FArguments& InArgs)
 		// Translation Viewer overlay layer
 		+ SOverlay::Slot()
 		[
-			SNew(SBorder)
+			SNew(SBackgroundBlur)
 			.Visibility(this, &SN2CMainWindow::GetTranslationOverlayVisibility)
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-			.BorderBackgroundColor(N2CMainWindowColors::BgOverlay)
-			.Padding(20.0f)
+			.BlurStrength(2.0f)
 			[
-				SAssignNew(TranslationViewer, SN2CTranslationViewer)
-				.OnCloseRequested(FSimpleDelegate::CreateSP(this, &SN2CMainWindow::HideTranslationViewer))
+				SNew(SBorder)
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				.BorderBackgroundColor(UILA(N2CUI().BgPanelDarker, 0.30f))
+				.Padding(20.0f)
+				[
+					SAssignNew(TranslationViewer, SN2CTranslationViewer)
+					.OnCloseRequested(FSimpleDelegate::CreateSP(this, &SN2CMainWindow::HideTranslationViewer))
+				]
 			]
 		]
 
@@ -83,7 +82,7 @@ void SN2CMainWindow::Construct(const FArguments& InArgs)
 			SNew(SBorder)
 			.Visibility(this, &SN2CMainWindow::GetBatchProgressVisibility)
 			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-			.BorderBackgroundColor(N2CMainWindowColors::BgOverlay)
+			.BorderBackgroundColor(UILA(N2CUI().BgPanelDarker, 0.30f))
 			.Padding(0.0f)
 			[
 				// Center the modal within the full-screen overlay

@@ -8,6 +8,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Images/SImage.h"
 #include "Styling/AppStyle.h"
+#include "Core/N2CSettings.h"
 
 #define LOCTEXT_NAMESPACE "SN2CTagCategoryTree"
 
@@ -305,7 +306,7 @@ TSharedRef<ITableRow> SN2CTagCategoryTree::OnGenerateRow(TSharedPtr<FN2CTreeItem
 		: StaticCastSharedRef<SWidget>(
 			SNew(SImage)
 			.Image(FAppStyle::GetBrush("GraphEditor.Bookmark"))
-			.ColorAndOpacity(FSlateColor(FLinearColor(0.83f, 0.63f, 0.29f, 1.0f)))
+			.ColorAndOpacity(FSlateColor(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().AccentGold)))
 		);
 
 	return SNew(STableRow<TSharedPtr<FN2CTreeItem>>, OwnerTable)

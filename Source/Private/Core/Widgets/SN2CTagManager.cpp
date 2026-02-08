@@ -144,7 +144,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						[
 							SAssignNew(SelectionCountText, STextBlock)
 							.Text(LOCTEXT("NoSelection", "0 graphs selected"))
-							.ColorAndOpacity(FLinearColor(0.83f, 0.63f, 0.29f, 1.0f)) // Orange
+							.ColorAndOpacity(FN2CUIColors::ToLinear(UN2CSettings::GetUIColors().AccentGold)) // Orange
 						]
 					]
 					// Action buttons

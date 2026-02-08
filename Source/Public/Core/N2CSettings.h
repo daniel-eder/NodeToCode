@@ -15,6 +15,94 @@
 #include "N2CSettings.generated.h"
 
 USTRUCT(BlueprintType)
+struct FN2CUIColors
+{
+    GENERATED_BODY()
+
+    // ── Background Colors ──────────────────────────────────────────
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Backgrounds", meta = (DisplayName = "Panel Background"))
+    FColor BgPanel = FColor(37, 37, 38);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Backgrounds", meta = (DisplayName = "Panel Background Dark"))
+    FColor BgPanelDarker = FColor(26, 26, 26);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Backgrounds", meta = (DisplayName = "Input Background"))
+    FColor BgInput = FColor(45, 45, 45);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Backgrounds", meta = (DisplayName = "Hover Background"))
+    FColor BgHover = FColor(51, 51, 51);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Backgrounds", meta = (DisplayName = "Overlay Panel Background"))
+    FColor BgOverlayPanel = FColor(10, 10, 10);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Backgrounds", meta = (DisplayName = "Button Dark Background"))
+    FColor BgButtonDark = FColor(28, 28, 28);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Backgrounds", meta = (DisplayName = "Button Dark Background Selected"))
+    FColor BgButtonDarkSelected = FColor(42, 42, 42);
+
+    // ── Border Colors ──────────────────────────────────────────────
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Borders", meta = (DisplayName = "Border"))
+    FColor BorderColor = FColor(60, 60, 60);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Borders", meta = (DisplayName = "Border Subtle"))
+    FColor BorderSubtle = FColor(42, 42, 42);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Borders", meta = (DisplayName = "Fallback Border"))
+    FColor FallbackBorder = FColor(28, 28, 28);
+
+    // ── Text Colors ────────────────────────────────────────────────
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Text", meta = (DisplayName = "Text Primary"))
+    FColor TextPrimary = FColor(204, 204, 204);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Text", meta = (DisplayName = "Text Secondary"))
+    FColor TextSecondary = FColor(157, 157, 157);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Text", meta = (DisplayName = "Text Muted"))
+    FColor TextMuted = FColor(107, 107, 107);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Text", meta = (DisplayName = "Text Shadow"))
+    FColor TextShadow = FColor(15, 15, 15);
+
+    // ── Accent Colors ──────────────────────────────────────────────
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Accents", meta = (DisplayName = "Accent Orange"))
+    FColor AccentOrange = FColor(212, 160, 74);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Accents", meta = (DisplayName = "Accent Orange Dim"))
+    FColor AccentOrangeDim = FColor(139, 105, 20);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Accents", meta = (DisplayName = "Accent Green"))
+    FColor AccentGreen = FColor(78, 201, 176);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Accents", meta = (DisplayName = "Accent Red"))
+    FColor AccentRed = FColor(241, 76, 76);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Accents", meta = (DisplayName = "Accent Gold"))
+    FColor AccentGold = FColor(212, 161, 74);
+
+    UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category = "Node to Code | Settings | UI Colors | Accents", meta = (DisplayName = "Accent Blue"))
+    FColor AccentBlue = FColor(79, 194, 255);
+
+    // ── Helper Methods ─────────────────────────────────────────────
+
+    static FLinearColor ToLinear(const FColor& Color)
+    {
+        return FLinearColor::FromSRGBColor(Color);
+    }
+
+    static FLinearColor ToLinearWithAlpha(const FColor& Color, float Alpha)
+    {
+        FLinearColor Linear = FLinearColor::FromSRGBColor(Color);
+        Linear.A = Alpha;
+        return Linear;
+    }
+};
+
+USTRUCT(BlueprintType)
 struct FN2CCodeEditorColors
 {
     GENERATED_BODY()
@@ -336,7 +424,7 @@ struct FN2CCodeEditorThemes
         StudioBlue.Background = FColor(0xfff8f9fc); // Soft white with slight blue tint for reduced eye strain
         StudioBlue.NormalText = FColor(0xff1f1f1f); // Dark gray for main text - softer than pure black
         StudioBlue.Keywords = FColor(0xff0000ff); // Classic Visual Studio blue for keywords
-        StudioBlue.Operators = FColor(0xff000000); // Near-black for operators to maintain clarity
+        StudioBlue.Operators = FColor(0xff1f1f1f); // Dark gray for operators to maintain clarity
         StudioBlue.Strings = FColor(0xffa31515); // Traditional VS dark red for string literals
         StudioBlue.Numbers = FColor(0xff098658); // Teal green for numeric values
         StudioBlue.Comments = FColor(0xff008000); // Classic VS green for comments
@@ -550,6 +638,17 @@ public:
     /** Notify that model settings have changed - call this to update token estimation UI */
     void NotifyModelSettingsChanged();
 
+    /** UI Color palette for all NodeToCode widgets */
+    UPROPERTY(Config, EditAnywhere, Category = "Node to Code | Theming | UI Colors",
+        meta=(DisplayName="UI Colors"))
+    FN2CUIColors UIColors;
+
+    /** Get the UI color palette */
+    static const FN2CUIColors& GetUIColors()
+    {
+        return GetDefault<UN2CSettings>()->UIColors;
+    }
+
     /** Style themes for C++ code */
     UPROPERTY(Config, EditAnywhere, Category = "Node to Code | Theming | Language Specific Themes",
         meta=(DisplayName="C++ Themes"))
@@ -719,8 +818,13 @@ private:
 #if WITH_EDITOR
     /** Show a notification that the editor needs to restart */
     void ShowRestartEditorNotification();
-    
+
     /** Weak pointer to the restart notification */
     TWeakPtr<SNotificationItem> RestartNotificationPtr;
 #endif
 };
+
+// Compact UI color accessors for widget code (unity-build safe)
+inline const FN2CUIColors& N2CUI() { return UN2CSettings::GetUIColors(); }
+inline FLinearColor UIL(const FColor& C) { return FN2CUIColors::ToLinear(C); }
+inline FLinearColor UILA(const FColor& C, float A) { return FN2CUIColors::ToLinearWithAlpha(C, A); }

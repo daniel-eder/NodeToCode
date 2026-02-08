@@ -11,6 +11,7 @@
 #include "Widgets/SOverlay.h"
 #include "Styling/AppStyle.h"
 #include "Models/N2CLogging.h"
+#include "Core/N2CSettings.h"
 
 #define LOCTEXT_NAMESPACE "SN2CGraphListRow"
 
@@ -82,7 +83,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 					SNew(STextBlock)
 					.Text(FText::FromString(Item->GetBlueprintDisplayName()))
 					.Font(FAppStyle::GetFontStyle("SmallFont"))
-					.ColorAndOpacity(FLinearColor(0.31f, 0.76f, 1.0f, 1.0f)) // Blueprint blue
+					.ColorAndOpacity(UIL(N2CUI().AccentBlue)) // Blueprint blue
 					.ToolTipText(FText::FromString(Item->TagInfo.BlueprintPath))
 				]
 
@@ -131,7 +132,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 							SNew(STextBlock)
 							.Text(this, &SN2CGraphListRow::GetCostText)
 							.Font(FAppStyle::GetFontStyle("TinyFont"))
-							.ColorAndOpacity(FLinearColor::FromSRGBColor(FColor(78, 201, 176))) // Green for cost
+							.ColorAndOpacity(UIL(N2CUI().AccentGreen)) // Green for cost
 						]
 					]
 				]
@@ -299,17 +300,17 @@ FSlateColor SN2CGraphListRow::GetBackgroundColor() const
 	// Selected + Hovered: Brighter gold
 	if (Item->bIsSelected && bIsHovered)
 	{
-		return FSlateColor(FLinearColor(0.83f, 0.63f, 0.29f, 0.3f));
+		return FSlateColor(UILA(N2CUI().AccentGold, 0.3f));
 	}
 	// Selected: Normal gold
 	if (Item->bIsSelected)
 	{
-		return FSlateColor(FLinearColor(0.83f, 0.63f, 0.29f, 0.2f));
+		return FSlateColor(UILA(N2CUI().AccentGold, 0.2f));
 	}
 	// Hovered: Subtle gray
 	if (bIsHovered)
 	{
-		return FSlateColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.15f));
+		return FSlateColor(UILA(N2CUI().TextMuted, 0.15f));
 	}
 	// Normal: Transparent
 	return FSlateColor(FLinearColor::Transparent);
@@ -321,9 +322,9 @@ FSlateColor SN2CGraphListRow::GetButtonBackgroundColor() const
 	// Match the row background when selected, otherwise use dark gray
 	if (Item.IsValid() && Item->bIsSelected)
 	{
-		return FSlateColor(FLinearColor(0.15f, 0.15f, 0.15f, 0.95f));
+		return FSlateColor(UILA(N2CUI().BgButtonDarkSelected, 0.95f));
 	}
-	return FSlateColor(FLinearColor(0.1f, 0.1f, 0.1f, 0.9f));
+	return FSlateColor(UILA(N2CUI().BgButtonDark, 0.9f));
 }
 
 EVisibility SN2CGraphListRow::GetActionButtonsVisibility() const

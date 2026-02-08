@@ -16,24 +16,9 @@
 #include "HAL/PlatformApplicationMisc.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+#include "Core/N2CSettings.h"
 
 #define LOCTEXT_NAMESPACE "SN2CTranslationViewer"
-
-// NodeToCode color scheme (matching CSS variables from mockup)
-namespace N2CViewerColors
-{
-	const FLinearColor BgPanel = FLinearColor::FromSRGBColor(FColor(37, 37, 38));        // #252526
-	const FLinearColor BgPanelDarker = FLinearColor::FromSRGBColor(FColor(26, 26, 26));  // #1a1a1a
-	const FLinearColor BgInput = FLinearColor::FromSRGBColor(FColor(45, 45, 45));        // #2d2d2d
-	const FLinearColor BgHover = FLinearColor::FromSRGBColor(FColor(51, 51, 51));        // #333333
-	const FLinearColor BorderColor = FLinearColor::FromSRGBColor(FColor(60, 60, 60));    // #3c3c3c
-	const FLinearColor BorderSubtle = FLinearColor::FromSRGBColor(FColor(42, 42, 42));   // #2a2a2a
-	const FLinearColor TextPrimary = FLinearColor::FromSRGBColor(FColor(204, 204, 204)); // #cccccc
-	const FLinearColor TextSecondary = FLinearColor::FromSRGBColor(FColor(157, 157, 157)); // #9d9d9d
-	const FLinearColor TextMuted = FLinearColor::FromSRGBColor(FColor(107, 107, 107));   // #6b6b6b
-	const FLinearColor AccentOrange = FLinearColor::FromSRGBColor(FColor(212, 160, 74)); // #d4a04a
-	const FLinearColor AccentOrangeDim = FLinearColor::FromSRGBColor(FColor(139, 105, 20)); // #8b6914
-}
 
 void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 {
@@ -45,7 +30,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 	[
 		SNew(SBorder)
 		.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-		.BorderBackgroundColor(N2CViewerColors::BgPanel)
+		.BorderBackgroundColor(UIL(N2CUI().BgPanel))
 		.Padding(0)
 		[
 			SNew(SVerticalBox)
@@ -56,7 +41,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			[
 				SNew(SBorder)
 				.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
-				.BorderBackgroundColor(N2CViewerColors::BgPanelDarker)
+				.BorderBackgroundColor(UIL(N2CUI().BgPanelDarker))
 				.Padding(FMargin(12.0f, 10.0f))
 				[
 					SNew(SHorizontalBox)
@@ -68,7 +53,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 						SAssignNew(GraphNameText, STextBlock)
 						.Text(LOCTEXT("NoTranslation", "No Translation Loaded"))
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
-						.ColorAndOpacity(N2CViewerColors::TextPrimary)
+						.ColorAndOpacity(UIL(N2CUI().TextPrimary))
 					]
 					// Close button
 					+ SHorizontalBox::Slot()
@@ -84,7 +69,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 							SNew(STextBlock)
 							.Text(FText::FromString(TEXT("\u2715"))) // ✕
 							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 18))
-							.ColorAndOpacity(N2CViewerColors::TextMuted)
+							.ColorAndOpacity(UIL(N2CUI().TextMuted))
 						]
 					]
 				]
@@ -96,7 +81,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			[
 				SNew(SBorder)
 				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-				.BorderBackgroundColor(N2CViewerColors::BgPanel)
+				.BorderBackgroundColor(UIL(N2CUI().BgPanel))
 				.Padding(FMargin(12.0f, 8.0f))
 				[
 					SNew(SHorizontalBox)
@@ -161,7 +146,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			[
 				SNew(SBorder)
 				.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
-				.BorderBackgroundColor(N2CViewerColors::BgPanelDarker)
+				.BorderBackgroundColor(UIL(N2CUI().BgPanelDarker))
 				.Padding(0)
 				[
 					SAssignNew(CodeEditor, SN2CCodeEditor)
@@ -178,7 +163,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 				.AreaTitle(LOCTEXT("NotesHeader", "Translation Notes"))
 				.InitiallyCollapsed(false)
 				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-				.BorderBackgroundColor(N2CViewerColors::BgPanelDarker)
+				.BorderBackgroundColor(UIL(N2CUI().BgPanelDarker))
 				.HeaderPadding(FMargin(12.0f, 8.0f))
 				.Padding(FMargin(0.0f))
 				.BodyContent()
@@ -188,7 +173,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 					[
 						SNew(SBorder)
 						.BorderImage(FAppStyle::GetBrush("ToolPanel.DarkGroupBorder"))
-						.BorderBackgroundColor(N2CViewerColors::BgPanelDarker)
+						.BorderBackgroundColor(UIL(N2CUI().BgPanelDarker))
 						.Padding(FMargin(16.0f, 12.0f))
 						[
 							SNew(SHorizontalBox)
@@ -201,7 +186,7 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 								[
 									SAssignNew(NotesText, STextBlock)
 									.Text(LOCTEXT("NoNotes", "No implementation notes available."))
-									.ColorAndOpacity(N2CViewerColors::TextSecondary)
+									.ColorAndOpacity(UIL(N2CUI().TextSecondary))
 									.AutoWrapText(true)
 								]
 							]
@@ -478,18 +463,18 @@ FSlateColor SN2CTranslationViewer::GetTabTextColor(FString FileType) const
 {
 	if (FileType == ActiveFileType)
 	{
-		return N2CViewerColors::AccentOrange;
+		return UIL(N2CUI().AccentOrange);
 	}
-	return N2CViewerColors::TextSecondary;
+	return UIL(N2CUI().TextSecondary);
 }
 
 FSlateColor SN2CTranslationViewer::GetTabBorderColor(FString FileType) const
 {
 	if (FileType == ActiveFileType)
 	{
-		return N2CViewerColors::AccentOrange;
+		return UIL(N2CUI().AccentOrange);
 	}
-	return N2CViewerColors::BorderColor;
+	return UIL(N2CUI().BorderColor);
 }
 
 #undef LOCTEXT_NAMESPACE
