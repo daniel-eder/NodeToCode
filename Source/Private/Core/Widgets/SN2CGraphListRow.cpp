@@ -10,6 +10,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/SOverlay.h"
 #include "Styling/AppStyle.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
 #include "Models/N2CLogging.h"
 #include "Core/N2CSettings.h"
 #include "Models/N2CStyle.h"
@@ -140,17 +141,16 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 			]
 		]
 
-		// Layer 1: Action buttons overlay (right-aligned, visible on hover)
+		// Layer 1: Action buttons overlay (over Blueprint column, visible on hover)
 		+ SOverlay::Slot()
 		.HAlign(HAlign_Right)
-		.VAlign(VAlign_Center)
-		.Padding(FMargin(0.0f, 0.0f, 8.0f, 0.0f))
+		.VAlign(VAlign_Fill)
+		.Padding(FMargin(0.0f, 0.0f, 128.0f, 0.0f)) // Offset past Context column
 		[
 			SNew(SBorder)
-			// Give buttons a background so they're visible over text
-			.BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+			.BorderImage(GetButtonOverlayBrush())
 			.BorderBackgroundColor(this, &SN2CGraphListRow::GetButtonBackgroundColor)
-			.Padding(FMargin(0.0f, 0.0f))
+			.Padding(FMargin(0.0f, 2.0f))
 			.Visibility(this, &SN2CGraphListRow::GetActionButtonsVisibility)
 			[
 				SNew(SHorizontalBox)
@@ -315,6 +315,12 @@ FSlateColor SN2CGraphListRow::GetBackgroundColor() const
 	}
 	// Normal: Transparent
 	return FSlateColor(FLinearColor::Transparent);
+}
+
+const FSlateBrush* SN2CGraphListRow::GetButtonOverlayBrush()
+{
+	static FSlateRoundedBoxBrush Brush(FLinearColor::White, 4.0f);
+	return &Brush;
 }
 
 FSlateColor SN2CGraphListRow::GetButtonBackgroundColor() const

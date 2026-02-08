@@ -76,6 +76,7 @@ private:
 
 	// Visual state helpers (called via TAttribute binding)
 	FSlateColor GetBackgroundColor() const;
+	static const FSlateBrush* GetButtonOverlayBrush();
 	FSlateColor GetButtonBackgroundColor() const;
 	EVisibility GetActionButtonsVisibility() const;
 	ECheckBoxState GetCheckboxState() const;
