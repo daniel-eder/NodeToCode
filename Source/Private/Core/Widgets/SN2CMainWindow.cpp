@@ -3,6 +3,7 @@
 #include "Core/Widgets/SN2CMainWindow.h"
 #include "Models/N2CStyle.h"
 #include "Core/Widgets/SN2CTagManager.h"
+#include "Core/N2CDesignTokens.h"
 #include "Core/Widgets/SN2CTranslationViewer.h"
 #include "Core/Widgets/SN2CBatchProgressModal.h"
 #include "Core/N2CEditorIntegration.h"
@@ -69,7 +70,7 @@ void SN2CMainWindow::Construct(const FArguments& InArgs)
 				SNew(SBorder)
 				.BorderImage(&N2CStyle::GetPanelBorderBrush())
 				.BorderBackgroundColor(UIBindAlpha(&FN2CUIColors::BgPanelDarker, 0.30f))
-				.Padding(20.0f)
+				.Padding(FN2CSpacing::XXL)
 				[
 					SAssignNew(TranslationViewer, SN2CTranslationViewer)
 					.OnCloseRequested(FSimpleDelegate::CreateSP(this, &SN2CMainWindow::HideTranslationViewer))

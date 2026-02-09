@@ -55,7 +55,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
-				.Padding(4.0f, 0.0f)
+				.Padding(FN2CSpacing::XS, 0.0f)
 				[
 					SNew(SBox)
 					.WidthOverride(22.0f)
@@ -71,11 +71,11 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
 				.VAlign(VAlign_Center)
-				.Padding(4.0f, 0.0f)
+				.Padding(FN2CSpacing::XS, 0.0f)
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(Item->TagInfo.GraphName))
-					.Font(FAppStyle::GetFontStyle("SmallFont"))
+					.Font(FN2CFonts::Small())
 					.ColorAndOpacity(FSlateColor::UseForeground())
 				]
 
@@ -83,11 +83,11 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
 				.VAlign(VAlign_Center)
-				.Padding(4.0f, 0.0f)
+				.Padding(FN2CSpacing::XS, 0.0f)
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(Item->GetBlueprintDisplayName()))
-					.Font(FAppStyle::GetFontStyle("SmallFont"))
+					.Font(FN2CFonts::Small())
 					.ColorAndOpacity(UIBind(&FN2CUIColors::AccentBlue)) // Blueprint blue
 					.ToolTipText(FText::FromString(Item->TagInfo.BlueprintPath))
 				]
@@ -96,7 +96,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
-				.Padding(4.0f, 0.0f)
+				.Padding(FN2CSpacing::XS, 0.0f)
 				[
 					SNew(SBox)
 					.WidthOverride(120.0f)
@@ -107,7 +107,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
 						.VAlign(VAlign_Center)
-						.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+						.Padding(0.0f, 0.0f, FN2CSpacing::XS, 0.0f)
 						[
 							SNew(SN2CCircularProgressBar)
 							.Percent(this, &SN2CGraphListRow::GetContextUsagePercent)
@@ -121,11 +121,11 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
 						.VAlign(VAlign_Center)
-						.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+						.Padding(0.0f, 0.0f, FN2CSpacing::XS, 0.0f)
 						[
 							SNew(STextBlock)
 							.Text(this, &SN2CGraphListRow::GetTokensText)
-							.Font(FAppStyle::GetFontStyle("TinyFont"))
+							.Font(FN2CFonts::Tiny())
 							.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 						]
 
@@ -136,7 +136,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 						[
 							SNew(STextBlock)
 							.Text(this, &SN2CGraphListRow::GetCostText)
-							.Font(FAppStyle::GetFontStyle("TinyFont"))
+							.Font(FN2CFonts::Tiny())
 							.ColorAndOpacity(UIBind(&FN2CUIColors::AccentGreen)) // Green for cost
 						]
 					]
@@ -161,7 +161,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				// Translate button
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(2.0f, 0.0f)
+				.Padding(FN2CSpacing::XXS, 0.0f)
 				[
 					SNew(SN2CIconButton)
 					.IconBrush(FAppStyle::GetBrush("Icons.Convert"))
@@ -175,7 +175,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				// JSON Export button
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(2.0f, 0.0f)
+				.Padding(FN2CSpacing::XXS, 0.0f)
 				[
 					SNew(SN2CIconButton)
 					.IconBrush(FAppStyle::GetBrush("MainFrame.RefreshSourceCodeEditor"))
@@ -189,7 +189,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				// View Translation button
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(2.0f, 0.0f)
+				.Padding(FN2CSpacing::XXS, 0.0f)
 				[
 					SNew(SN2CIconButton)
 					.IconBrush(FAppStyle::GetBrush("Icons.OpenInExternalEditor"))
