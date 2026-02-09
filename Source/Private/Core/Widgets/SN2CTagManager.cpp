@@ -4,6 +4,9 @@
 #include "Core/Widgets/SN2CTagCategoryTree.h"
 #include "Core/Widgets/SN2CTaggedGraphsList.h"
 #include "Core/Widgets/SN2CContextWindowVisualizer.h"
+#include "Core/Widgets/SN2CPanel.h"
+#include "Core/Widgets/SN2CIconButton.h"
+#include "Core/N2CDesignTokens.h"
 #include "Core/N2CTagManager.h"
 #include "Core/N2CSettings.h"
 #include "Models/N2CStyle.h"
@@ -113,16 +116,15 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 			SNew(SBox)
 			.Visibility(InArgs._ShowActionBar ? EVisibility::Visible : EVisibility::Collapsed)
 			[
-				SNew(SBorder)
-				.BorderImage(&N2CStyle::GetPanelBorderBrush())
-				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
-				.Padding(8.0f)
+				SNew(SN2CPanel)
+					.Variant(EN2CPanelVariant::Light)
+					.Padding(FN2CSpacing::MD)
 				[
 					SNew(SVerticalBox)
 					// Actions header + selection info + buttons in one row
 					+ SVerticalBox::Slot()
 					.AutoHeight()
-					.Padding(0.0f, 0.0f, 0.0f, 8.0f)
+					.Padding(0.0f, 0.0f, 0.0f, FN2CSpacing::MD)
 					[
 						SNew(SHorizontalBox)
 						// Left: header + selection info
@@ -141,7 +143,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 							]
 							+ SVerticalBox::Slot()
 							.AutoHeight()
-							.Padding(0.0f, 2.0f, 0.0f, 0.0f)
+							.Padding(0.0f, FN2CSpacing::XXS, 0.0f, 0.0f)
 							[
 								SNew(SHorizontalBox)
 								+ SHorizontalBox::Slot()
@@ -169,91 +171,38 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 							// Batch Translate button
 							+ SHorizontalBox::Slot()
 							.AutoWidth()
-							.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+							.Padding(0.0f, 0.0f, FN2CSpacing::MD, 0.0f)
 							[
-								SNew(SButton)
-								.ButtonStyle(&N2CStyle::GetButtonStyle())
+								SNew(SN2CIconButton)
+								.IconBrush(FAppStyle::GetBrush("Icons.Convert"))
+								.Text(LOCTEXT("BatchTranslateButton", "Batch Translate"))
+								.ButtonVariant(EN2CButtonVariant::Standard)
 								.OnClicked(this, &SN2CTagManager::HandleBatchTranslateClicked)
-								.ContentPadding(FMargin(8.0f, 4.0f))
-								[
-									SNew(SHorizontalBox)
-									+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.VAlign(VAlign_Center)
-									.Padding(0.0f, 0.0f, 4.0f, 0.0f)
-									[
-										SNew(SImage)
-										.Image(FSlateIconFinder::FindIconBrushForClass(nullptr, FName("Icons.Convert")))
-										.DesiredSizeOverride(FVector2D(16.0f, 16.0f))
-									]
-									+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.VAlign(VAlign_Center)
-									[
-										SNew(STextBlock)
-										.Text(LOCTEXT("BatchTranslateButton", "Batch Translate"))
-									]
-								]
 							]
 							// Export JSON button
 							+ SHorizontalBox::Slot()
 							.AutoWidth()
-							.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+							.Padding(0.0f, 0.0f, FN2CSpacing::MD, 0.0f)
 							[
-								SNew(SButton)
-								.ButtonStyle(&N2CStyle::GetButtonStyle())
+								SNew(SN2CIconButton)
+								.IconBrush(FAppStyle::GetBrush("MainFrame.RefreshSourceCodeEditor"))
+								.Text(LOCTEXT("ExportJsonButton", "Export JSON"))
+								.ButtonVariant(EN2CButtonVariant::Standard)
 								.OnClicked(this, &SN2CTagManager::HandleExportJsonClicked)
-								.ContentPadding(FMargin(8.0f, 4.0f))
-								[
-									SNew(SHorizontalBox)
-									+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.VAlign(VAlign_Center)
-									.Padding(0.0f, 0.0f, 4.0f, 0.0f)
-									[
-										SNew(SImage)
-										.Image(FAppStyle::GetBrush("MainFrame.RefreshSourceCodeEditor"))
-										.DesiredSizeOverride(FVector2D(16.0f, 16.0f))
-									]
-									+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.VAlign(VAlign_Center)
-									[
-										SNew(STextBlock)
-										.Text(LOCTEXT("ExportJsonButton", "Export JSON"))
-									]
-								]
 							]
 							// Remove Selected button
 							+ SHorizontalBox::Slot()
 							.AutoWidth()
 							[
-								SNew(SButton)
-								.ButtonStyle(&N2CStyle::GetButtonStyle())
+								SNew(SN2CIconButton)
+								.IconBrush(FAppStyle::GetBrush("GenericCommands.Delete"))
+								.Text(LOCTEXT("RemoveSelectedButton", "Remove Selected"))
+								.ButtonVariant(EN2CButtonVariant::Standard)
 								.OnClicked(this, &SN2CTagManager::HandleRemoveSelectedClicked)
-								.ContentPadding(FMargin(8.0f, 4.0f))
-								[
-									SNew(SHorizontalBox)
-									+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.VAlign(VAlign_Center)
-									.Padding(0.0f, 0.0f, 4.0f, 0.0f)
-									[
-										SNew(SImage)
-										.Image(FAppStyle::GetBrush("GenericCommands.Delete"))
-										.DesiredSizeOverride(FVector2D(16.0f, 16.0f))
-									]
-									+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.VAlign(VAlign_Center)
-									[
-										SNew(STextBlock)
-										.Text(LOCTEXT("RemoveSelectedButton", "Remove Selected"))
-									]
-								]
 							]
 						]
 					]
+
 					// Export options row
 					+ SVerticalBox::Slot()
 					.AutoHeight()
@@ -290,7 +239,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
 						.VAlign(VAlign_Center)
-						.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+						.Padding(0.0f, 0.0f, FN2CSpacing::MD, 0.0f)
 						[
 							SNew(STextBlock)
 							.Text(LOCTEXT("OutputLabel", "Output:"))

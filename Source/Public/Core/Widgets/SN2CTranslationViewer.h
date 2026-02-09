@@ -8,6 +8,7 @@
 #include "TagManager/Models/N2CTagManagerTypes.h"
 
 class SN2CCodeEditor;
+class SN2CHeaderBar;
 class SExpandableArea;
 
 /**
@@ -61,7 +62,7 @@ private:
 	FSimpleDelegate OnCloseRequestedDelegate;
 
 	// Header widgets
-	TSharedPtr<STextBlock> GraphNameText;
+	TSharedPtr<SN2CHeaderBar> HeaderBar;
 
 	// File tab buttons
 	TSharedPtr<SButton> CppTabButton;

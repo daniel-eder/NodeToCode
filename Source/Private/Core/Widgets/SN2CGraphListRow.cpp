@@ -14,6 +14,8 @@
 #include "Models/N2CLogging.h"
 #include "Core/N2CSettings.h"
 #include "Models/N2CStyle.h"
+#include "Core/Widgets/SN2CIconButton.h"
+#include "Core/N2CDesignTokens.h"
 
 #define LOCTEXT_NAMESPACE "SN2CGraphListRow"
 
@@ -160,17 +162,13 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				.AutoWidth()
 				.Padding(2.0f, 0.0f)
 				[
-					SNew(SButton)
-					.ButtonStyle(&N2CStyle::GetSimpleButtonStyle())
+					SNew(SN2CIconButton)
+					.IconBrush(FAppStyle::GetBrush("Icons.Convert"))
+					.IconSize(FVector2D(FN2CSizing::IconSM, FN2CSizing::IconSM))
+					.ButtonVariant(EN2CButtonVariant::Simple)
+					.ContentPadding(FMargin(FN2CSpacing::XS, FN2CSpacing::XXS))
 					.ToolTipText(LOCTEXT("TranslateTooltip", "Translate this graph"))
 					.OnClicked(this, &SN2CGraphListRow::HandleTranslateClicked)
-					.ContentPadding(FMargin(4.0f, 2.0f))
-					[
-						SNew(SImage)
-						.Image(FAppStyle::GetBrush("Icons.Convert"))
-						.DesiredSizeOverride(FVector2D(14.0f, 14.0f))
-						.ColorAndOpacity(FSlateColor::UseForeground())
-					]
 				]
 
 				// JSON Export button
@@ -178,17 +176,13 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				.AutoWidth()
 				.Padding(2.0f, 0.0f)
 				[
-					SNew(SButton)
-					.ButtonStyle(&N2CStyle::GetSimpleButtonStyle())
+					SNew(SN2CIconButton)
+					.IconBrush(FAppStyle::GetBrush("MainFrame.RefreshSourceCodeEditor"))
+					.IconSize(FVector2D(FN2CSizing::IconSM, FN2CSizing::IconSM))
+					.ButtonVariant(EN2CButtonVariant::Simple)
+					.ContentPadding(FMargin(FN2CSpacing::XS, FN2CSpacing::XXS))
 					.ToolTipText(LOCTEXT("JsonExportTooltip", "Export as JSON"))
 					.OnClicked(this, &SN2CGraphListRow::HandleJsonExportClicked)
-					.ContentPadding(FMargin(4.0f, 2.0f))
-					[
-						SNew(SImage)
-						.Image(FAppStyle::GetBrush("MainFrame.RefreshSourceCodeEditor"))
-						.DesiredSizeOverride(FVector2D(14.0f, 14.0f))
-						.ColorAndOpacity(FSlateColor::UseForeground())
-					]
 				]
 
 				// View Translation button
@@ -196,18 +190,14 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 				.AutoWidth()
 				.Padding(2.0f, 0.0f)
 				[
-					SNew(SButton)
-					.ButtonStyle(&N2CStyle::GetSimpleButtonStyle())
+					SNew(SN2CIconButton)
+					.IconBrush(FAppStyle::GetBrush("Icons.OpenInExternalEditor"))
+					.IconSize(FVector2D(FN2CSizing::IconSM, FN2CSizing::IconSM))
+					.ButtonVariant(EN2CButtonVariant::Simple)
+					.ContentPadding(FMargin(FN2CSpacing::XS, FN2CSpacing::XXS))
 					.IsEnabled(this, &SN2CGraphListRow::IsViewButtonEnabled)
-					.ToolTipText(this, &SN2CGraphListRow::GetViewButtonTooltip)
+					.ToolTipText(TAttribute<FText>::CreateSP(this, &SN2CGraphListRow::GetViewButtonTooltip))
 					.OnClicked(this, &SN2CGraphListRow::HandleViewTranslationClicked)
-					.ContentPadding(FMargin(4.0f, 2.0f))
-					[
-						SNew(SImage)
-						.Image(FAppStyle::GetBrush("Icons.OpenInExternalEditor"))
-						.DesiredSizeOverride(FVector2D(14.0f, 14.0f))
-						.ColorAndOpacity(FSlateColor::UseForeground())
-					]
 				]
 			]
 		]

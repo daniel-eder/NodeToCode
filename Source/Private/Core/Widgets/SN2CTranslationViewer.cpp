@@ -1,6 +1,10 @@
 // Copyright (c) 2025 Nick McClure (Protospatial). All Rights Reserved.
 
 #include "Core/Widgets/SN2CTranslationViewer.h"
+#include "Core/Widgets/SN2CPanel.h"
+#include "Core/Widgets/SN2CIconButton.h"
+#include "Core/Widgets/SN2CHeaderBar.h"
+#include "Core/N2CDesignTokens.h"
 #include "Code Editor/Widgets/SN2CCodeEditor.h"
 #include "Core/N2CGraphStateManager.h"
 #include "Widgets/Layout/SBorder.h"
@@ -29,9 +33,8 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 
 	ChildSlot
 	[
-		SNew(SBorder)
-		.BorderImage(&N2CStyle::GetPanelBorderBrush())
-		.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
+		SNew(SN2CPanel)
+		.Variant(EN2CPanelVariant::Light)
 		.Padding(0)
 		[
 			SNew(SVerticalBox)
@@ -40,50 +43,19 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew(SBorder)
-				.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
-				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
-				.Padding(FMargin(12.0f, 10.0f))
-				[
-					SNew(SHorizontalBox)
-					// Graph name
-					+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.VAlign(VAlign_Center)
-					[
-						SAssignNew(GraphNameText, STextBlock)
-						.Text(LOCTEXT("NoTranslation", "No Translation Loaded"))
-						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
-						.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
-					]
-					// Close button
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					[
-						SNew(SButton)
-						.ButtonStyle(&N2CStyle::GetNoBorderStyle())
-						.ContentPadding(FMargin(4.0f))
-						.OnClicked(this, &SN2CTranslationViewer::HandleCloseClicked)
-						.ToolTipText(LOCTEXT("CloseTooltip", "Close"))
-						[
-							SNew(STextBlock)
-							.Text(FText::FromString(TEXT("\u2715"))) // ✕
-							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 18))
-							.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
-						]
-					]
-				]
+				SAssignNew(HeaderBar, SN2CHeaderBar)
+				.Title(LOCTEXT("NoTranslation", "No Translation Loaded"))
+				.ShowCloseButton(true)
+				.OnClose(this, &SN2CTranslationViewer::HandleCloseClicked)
 			]
 
 			// Toolbar with file tabs and copy button
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew(SBorder)
-				.BorderImage(&N2CStyle::GetPanelBorderBrush())
-				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
-				.Padding(FMargin(12.0f, 8.0f))
+				SNew(SN2CPanel)
+				.Variant(EN2CPanelVariant::Light)
+				.Padding(FMargin(FN2CSpacing::LG, FN2CSpacing::MD))
 				[
 					SNew(SHorizontalBox)
 					// File tabs
@@ -93,13 +65,13 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 						SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
-						.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+						.Padding(0.0f, 0.0f, FN2CSpacing::XS, 0.0f)
 						[
 							CreateFileTab(TEXT(".cpp"), TEXT("cpp"), CppTabButton)
 						]
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
-						.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+						.Padding(0.0f, 0.0f, FN2CSpacing::XS, 0.0f)
 						[
 							CreateFileTab(TEXT(".h"), TEXT("h"), HeaderTabButton)
 						]
@@ -119,24 +91,13 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					[
-						SNew(SButton)
-						.ButtonStyle(&N2CStyle::GetButtonStyle())
-						.ContentPadding(FMargin(6.0f, 6.0f))
+						SNew(SN2CIconButton)
+						.IconBrush(FAppStyle::GetBrush("Icons.Clipboard"))
+						.IconSize(FVector2D(FN2CSizing::IconSM, FN2CSizing::IconSM))
+						.ButtonVariant(EN2CButtonVariant::Standard)
+						.ContentPadding(FMargin(FN2CSpacing::SM))
 						.OnClicked(this, &SN2CTranslationViewer::HandleCopyCodeClicked)
 						.ToolTipText(LOCTEXT("CopyCodeTooltip", "Copy code to clipboard"))
-						[
-							SNew(SScaleBox)
-							.Stretch(EStretch::ScaleToFit)
-							[
-								SNew(SBox)
-								.WidthOverride(14.0f)
-								.HeightOverride(14.0f)
-								[
-									SNew(SImage)
-									.Image(FAppStyle::GetBrush("Icons.Clipboard"))
-								]
-							]
-						]
 					]
 				]
 			]
@@ -145,9 +106,8 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 			+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
 			[
-				SNew(SBorder)
-				.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
-				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
+				SNew(SN2CPanel)
+				.Variant(EN2CPanelVariant::Dark)
 				.Padding(0)
 				[
 					SAssignNew(CodeEditor, SN2CCodeEditor)
@@ -165,17 +125,16 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 				.InitiallyCollapsed(false)
 				.BorderImage(&N2CStyle::GetPanelBorderBrush())
 				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
-				.HeaderPadding(FMargin(12.0f, 8.0f))
+				.HeaderPadding(FMargin(FN2CSpacing::LG, FN2CSpacing::MD))
 				.Padding(FMargin(0.0f))
 				.BodyContent()
 				[
 					SNew(SBox)
 					.MaxDesiredHeight(150.0f)
 					[
-						SNew(SBorder)
-						.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
-						.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
-						.Padding(FMargin(16.0f, 12.0f))
+						SNew(SN2CPanel)
+						.Variant(EN2CPanelVariant::Dark)
+						.Padding(FMargin(FN2CSpacing::XL, FN2CSpacing::LG))
 						[
 							SNew(SHorizontalBox)
 							// Notes text
@@ -195,26 +154,15 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 							+ SHorizontalBox::Slot()
 							.AutoWidth()
 							.VAlign(VAlign_Top)
-							.Padding(8.0f, 0.0f, 0.0f, 0.0f)
+							.Padding(FN2CSpacing::MD, 0.0f, 0.0f, 0.0f)
 							[
-								SNew(SButton)
-								.ButtonStyle(&N2CStyle::GetButtonStyle())
-								.ContentPadding(FMargin(6.0f, 6.0f))
+								SNew(SN2CIconButton)
+								.IconBrush(FAppStyle::GetBrush("Icons.Clipboard"))
+								.IconSize(FVector2D(FN2CSizing::IconSM, FN2CSizing::IconSM))
+								.ButtonVariant(EN2CButtonVariant::Standard)
+								.ContentPadding(FMargin(FN2CSpacing::SM))
 								.OnClicked(this, &SN2CTranslationViewer::HandleCopyNotesClicked)
 								.ToolTipText(LOCTEXT("CopyNotesTooltip", "Copy notes to clipboard"))
-								[
-									SNew(SScaleBox)
-									.Stretch(EStretch::ScaleToFit)
-									[
-										SNew(SBox)
-										.WidthOverride(14.0f)
-										.HeightOverride(14.0f)
-										[
-											SNew(SImage)
-											.Image(FAppStyle::GetBrush("Icons.Clipboard"))
-										]
-									]
-								]
 							]
 						]
 					]
@@ -271,9 +219,9 @@ void SN2CTranslationViewer::LoadTranslation(const FN2CGraphTranslation& Translat
 	bHasTranslation = true;
 
 	// Update graph name display
-	if (GraphNameText.IsValid())
+	if (HeaderBar.IsValid())
 	{
-		GraphNameText->SetText(FText::FromString(GraphName));
+		HeaderBar->SetTitle(FText::FromString(GraphName));
 	}
 
 	// Update notes
@@ -301,9 +249,9 @@ void SN2CTranslationViewer::SetJsonContent(const FString& JsonContent, const FSt
 	bHasTranslation = false;
 
 	// Update graph name display
-	if (GraphNameText.IsValid())
+	if (HeaderBar.IsValid())
 	{
-		GraphNameText->SetText(FText::FromString(GraphName));
+		HeaderBar->SetTitle(FText::FromString(GraphName));
 	}
 
 	// Clear notes
@@ -325,9 +273,9 @@ void SN2CTranslationViewer::Clear()
 	CurrentJsonContent = FString();
 	bHasTranslation = false;
 
-	if (GraphNameText.IsValid())
+	if (HeaderBar.IsValid())
 	{
-		GraphNameText->SetText(LOCTEXT("NoTranslation", "No Translation Loaded"));
+		HeaderBar->SetTitle(LOCTEXT("NoTranslation", "No Translation Loaded"));
 	}
 
 	if (NotesText.IsValid())

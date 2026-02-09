@@ -4,6 +4,8 @@
 #include "Core/Services/N2CTokenEstimationService.h"
 #include "Core/N2CSettings.h"
 #include "Models/N2CStyle.h"
+#include "Core/Widgets/SN2CPanel.h"
+#include "Core/N2CDesignTokens.h"
 #include "LLM/N2CLLMModelRegistry.h"
 #include "LLM/N2CLLMModels.h"
 #include "Widgets/Layout/SBorder.h"
@@ -34,10 +36,9 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 
 	ChildSlot
 	[
-		SNew(SBorder)
-		.BorderImage(&N2CStyle::GetPanelBorderBrush())
-		.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
-		.Padding(8.0f)
+		SNew(SN2CPanel)
+		.Variant(EN2CPanelVariant::Light)
+		.Padding(FN2CSpacing::MD)
 		[
 			SNew(SVerticalBox)
 

@@ -11,6 +11,9 @@
 #include "Models/N2CLogging.h"
 #include "Core/N2CSettings.h"
 #include "Models/N2CStyle.h"
+#include "Core/Widgets/SN2CPanel.h"
+#include "Core/Widgets/SN2CIconButton.h"
+#include "Core/N2CDesignTokens.h"
 
 #define LOCTEXT_NAMESPACE "SN2CBatchProgressModal"
 
@@ -36,9 +39,8 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 		.WidthOverride(ModalWidth)
 		.MaxDesiredHeight(MaxModalHeight)
 		[
-			SNew(SBorder)
-			.BorderImage(&N2CStyle::GetPanelBorderBrush())
-			.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
+			SNew(SN2CPanel)
+			.Variant(EN2CPanelVariant::Light)
 			.Padding(0)
 			[
 				SNew(SVerticalBox)
@@ -47,10 +49,9 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SNew(SBorder)
-					.BorderImage(&N2CStyle::GetPanelBorderBrush())
-					.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
-					.Padding(FMargin(16.0f, 14.0f))
+					SNew(SN2CPanel)
+					.Variant(EN2CPanelVariant::Light)
+					.Padding(FMargin(FN2CSpacing::XL, 14.0f))
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("ModalHeader", "Batch Translation in Progress"))
@@ -126,9 +127,8 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 						SNew(SBox)
 						.MaxDesiredHeight(MaxListHeight)
 						[
-							SNew(SBorder)
-							.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
-							.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
+							SNew(SN2CPanel)
+							.Variant(EN2CPanelVariant::Dark)
 							.Padding(0)
 							[
 								SNew(SScrollBox)
@@ -149,17 +149,16 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SNew(SBorder)
-					.BorderImage(&N2CStyle::GetPanelBorderBrush())
-					.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
-					.Padding(FMargin(16.0f, 12.0f))
+					SNew(SN2CPanel)
+					.Variant(EN2CPanelVariant::Light)
+					.Padding(FMargin(FN2CSpacing::XL, FN2CSpacing::LG))
 					[
 						SNew(SBox)
 						.HAlign(HAlign_Right)
 						[
 							SAssignNew(CancelButton, SButton)
 							.ButtonStyle(&N2CStyle::GetButtonStyle())
-							.ContentPadding(FMargin(16.0f, 6.0f))
+							.ContentPadding(FMargin(FN2CSpacing::XL, FN2CSpacing::SM))
 							.OnClicked(this, &SN2CBatchProgressModal::HandleCancelClicked)
 							[
 								SNew(STextBlock)

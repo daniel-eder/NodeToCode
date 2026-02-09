@@ -2,6 +2,9 @@
 
 #include "Core/Widgets/SN2CGraphOverlay.h"
 #include "Core/Widgets/SN2CCircularProgressBar.h"
+#include "Core/Widgets/SN2CPanel.h"
+#include "Core/Widgets/SN2CIconButton.h"
+#include "Core/N2CDesignTokens.h"
 #include "Core/N2CEditorIntegration.h"
 #include "Core/N2CEditorWindow.h"
 #include "Core/N2CTagManager.h"
@@ -66,10 +69,10 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 
 	ChildSlot
 	[
-		SNew(SBorder)
-		.BorderImage(&N2CStyle::GetPanelBorderBrush())
-		.BorderBackgroundColor(UIBindAlpha(&FN2CUIColors::BgOverlayPanel, 0.85f))
-		.Padding(FMargin(6.0f, 4.0f))
+		SNew(SN2CPanel)
+		.Variant(EN2CPanelVariant::Overlay)
+		.OverlayAlpha(0.85f)
+		.Padding(FMargin(FN2CSpacing::SM, FN2CSpacing::XS))
 		[
 			SNew(SHorizontalBox)
 
@@ -77,92 +80,51 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+			.Padding(0.0f, 0.0f, FN2CSpacing::XS, 0.0f)
 			[
-				SNew(SButton)
-				.ButtonStyle(&N2CStyle::GetSimpleButtonStyle())
+				SNew(SN2CIconButton)
+				.IconBrush(N2CStyle::Get().GetBrush("NodeToCode.ToolbarButton"))
+				.IconSize(FVector2D(FN2CSizing::IconLG, FN2CSizing::IconLG))
+				.Text(LOCTEXT("N2CBranding", "N2C"))
+				.Font(FN2CFonts::Small())
+				.TextColor(UIBind(&FN2CUIColors::TextSecondary))
+				.ButtonVariant(EN2CButtonVariant::Simple)
+				.ContentPadding(FMargin(FN2CSpacing::XXS))
 				.ToolTipText(LOCTEXT("OpenWindowTooltip", "Open NodeToCode Window"))
 				.OnClicked(this, &SN2CGraphOverlay::OnOpenWindowClicked)
-				.ContentPadding(FMargin(2.0f, 2.0f))
-				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					[
-						SNew(SBox)
-						.WidthOverride(20.0f)
-						.HeightOverride(20.0f)
-						[
-							SNew(SImage)
-							.Image(N2CStyle::Get().GetBrush("NodeToCode.ToolbarButton"))
-						]
-					]
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("N2CBranding", "N2C"))
-						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
-						.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
-					]
-				]
 			]
 
 			// Separator
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(2.0f, 0.0f)
+			.Padding(FN2CSpacing::XXS, 0.0f)
 			[
 				SNew(SSeparator)
 				.Orientation(Orient_Vertical)
-				.Thickness(1.0f)
+				.Thickness(FN2CSizing::SeparatorThickness)
 			]
 
 			// Tag button with count badge
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(4.0f, 0.0f, 4.0f, 0.0f)
+			.Padding(FN2CSpacing::XS, 0.0f, FN2CSpacing::XS, 0.0f)
 			[
 				SAssignNew(TagMenuAnchor, SMenuAnchor)
 				.Placement(MenuPlacement_BelowAnchor)
 				.OnGetMenuContent(this, &SN2CGraphOverlay::CreateTagPopoverContent)
 				[
-					SNew(SButton)
-					.ButtonStyle(&N2CStyle::GetSimpleButtonStyle())
-					.ToolTipText(this, &SN2CGraphOverlay::GetTagButtonTooltip)
+					SNew(SN2CIconButton)
+					.IconBrush(FAppStyle::GetBrush("GraphEditor.Bookmark"))
+					.IconColor(TAttribute<FSlateColor>::CreateSP(this, &SN2CGraphOverlay::GetTagButtonColor))
+					.Text(TAttribute<FText>::CreateSP(this, &SN2CGraphOverlay::GetTagCountText))
+					.Font(FN2CFonts::Small())
+					.TextColor(TAttribute<FSlateColor>::CreateSP(this, &SN2CGraphOverlay::GetTagButtonColor))
+					.ButtonVariant(EN2CButtonVariant::Simple)
+					.ContentPadding(FMargin(FN2CSpacing::XS, FN2CSpacing::XXS))
+					.ToolTipText(TAttribute<FText>::CreateSP(this, &SN2CGraphOverlay::GetTagButtonTooltip))
 					.OnClicked(this, &SN2CGraphOverlay::OnTagButtonClicked)
-					.ContentPadding(FMargin(4.0f, 2.0f))
-					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew(SBox)
-							.WidthOverride(16.0f)
-							.HeightOverride(16.0f)
-							[
-								SNew(SImage)
-								.Image(FAppStyle::GetBrush("GraphEditor.Bookmark"))
-								.ColorAndOpacity(this, &SN2CGraphOverlay::GetTagButtonColor)
-							]
-						]
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-						[
-							SNew(STextBlock)
-							.Text(this, &SN2CGraphOverlay::GetTagCountText)
-							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
-							.ColorAndOpacity(this, &SN2CGraphOverlay::GetTagButtonColor)
-						]
-					]
 				]
 			]
 
@@ -170,58 +132,50 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(2.0f, 0.0f)
+			.Padding(FN2CSpacing::XXS, 0.0f)
 			[
 				SNew(SSeparator)
 				.Orientation(Orient_Vertical)
-				.Thickness(1.0f)
+				.Thickness(FN2CSizing::SeparatorThickness)
 			]
 
 			// Copy JSON button
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(4.0f, 0.0f)
+			.Padding(FN2CSpacing::XS, 0.0f)
 			[
-				SNew(SButton)
-				.ButtonStyle(&N2CStyle::GetSimpleButtonStyle())
-				.ToolTipText(this, &SN2CGraphOverlay::GetCopyJsonTooltip)
+				SNew(SN2CIconButton)
+				.IconBrush(FAppStyle::GetBrush("Icons.Clipboard"))
+				.ButtonVariant(EN2CButtonVariant::Simple)
+				.ContentPadding(FMargin(FN2CSpacing::XS, FN2CSpacing::XXS))
+				.ToolTipText(TAttribute<FText>::CreateSP(this, &SN2CGraphOverlay::GetCopyJsonTooltip))
 				.OnClicked(this, &SN2CGraphOverlay::OnCopyJsonClicked)
-				.ContentPadding(FMargin(4.0f, 2.0f))
-				[
-					SNew(SBox)
-					.WidthOverride(16.0f)
-					.HeightOverride(16.0f)
-					[
-						SNew(SImage)
-						.Image(FAppStyle::GetBrush("Icons.Clipboard"))
-					]
-				]
 			]
 
 			// Separator
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(2.0f, 0.0f)
+			.Padding(FN2CSpacing::XXS, 0.0f)
 			[
 				SNew(SSeparator)
 				.Orientation(Orient_Vertical)
-				.Thickness(1.0f)
+				.Thickness(FN2CSizing::SeparatorThickness)
 			]
 
-			// Translate button
+			// Translate button (custom layout due to spinner)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+			.Padding(FN2CSpacing::XS, 0.0f, 0.0f, 0.0f)
 			[
 				SNew(SButton)
 				.ButtonStyle(&N2CStyle::GetSimpleButtonStyle())
 				.ToolTipText(this, &SN2CGraphOverlay::GetTranslateTooltip)
 				.OnClicked(this, &SN2CGraphOverlay::OnTranslateClicked)
 				.IsEnabled_Lambda([this]() { return !bIsTranslating; })
-				.ContentPadding(FMargin(4.0f, 2.0f))
+				.ContentPadding(FMargin(FN2CSpacing::XS, FN2CSpacing::XXS))
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
@@ -229,8 +183,8 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 					.VAlign(VAlign_Center)
 					[
 						SNew(SBox)
-						.WidthOverride(16.0f)
-						.HeightOverride(16.0f)
+						.WidthOverride(FN2CSizing::IconMD)
+						.HeightOverride(FN2CSizing::IconMD)
 						[
 							SNew(SImage)
 							.Image(FAppStyle::GetBrush("Icons.Convert"))
@@ -247,11 +201,11 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					.VAlign(VAlign_Center)
-					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+					.Padding(FN2CSpacing::XS, 0.0f, 0.0f, 0.0f)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TranslateButton", "Translate"))
-						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
+						.Font(FN2CFonts::Small())
 						.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 					]
 				]
@@ -261,18 +215,18 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(4.0f, 0.0f, 2.0f, 0.0f)
+			.Padding(FN2CSpacing::XS, 0.0f, FN2CSpacing::XXS, 0.0f)
 			[
 				SNew(SSeparator)
 				.Orientation(Orient_Vertical)
-				.Thickness(1.0f)
+				.Thickness(FN2CSizing::SeparatorThickness)
 			]
 
 			// Context usage circular progress with percentage overlay
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+			.Padding(FN2CSpacing::XS, 0.0f, 0.0f, 0.0f)
 			[
 				SNew(SBox)
 				.WidthOverride(32.0f)
@@ -295,7 +249,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(this, &SN2CGraphOverlay::GetContextUsagePercentText)
-						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 7))
+						.Font(FN2CFonts::TinyBold())
 						.Justification(ETextJustify::Center)
 						.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 					]
@@ -306,7 +260,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+			.Padding(FN2CSpacing::XXS, 0.0f, 0.0f, 0.0f)
 			[
 				SNew(SBox)
 				.Visibility_Lambda([]() -> EVisibility
@@ -316,27 +270,29 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 						: EVisibility::Collapsed;
 				})
 				[
-					SNew(SBorder)
-					.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
-					.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
-					.Padding(FMargin(4.0f, 2.0f))
-					.ToolTipText_Lambda([]() -> FText
-					{
-						int32 Depth = FN2CTokenEstimationService::Get().GetTranslationDepth();
-						return FText::FromString(FString::Printf(
-							TEXT("Nested Translation Depth: %d\n\nThis graph's token estimate includes\nreferenced user functions up to %d level(s) deep.\n\nThis can significantly increase costs.\nAdjust in Project Settings > Node to Code."),
-							Depth, Depth
-						));
-					})
+					SNew(SN2CPanel)
+					.Variant(EN2CPanelVariant::Dark)
+					.Padding(FMargin(FN2CSpacing::XS, FN2CSpacing::XXS))
 					[
-						SNew(STextBlock)
-						.Text_Lambda([]() -> FText
+						SNew(SBox)
+						.ToolTipText_Lambda([]() -> FText
 						{
 							int32 Depth = FN2CTokenEstimationService::Get().GetTranslationDepth();
-							return FText::FromString(FString::Printf(TEXT("N:%d"), Depth));
+							return FText::FromString(FString::Printf(
+								TEXT("Nested Translation Depth: %d\n\nThis graph's token estimate includes\nreferenced user functions up to %d level(s) deep.\n\nThis can significantly increase costs.\nAdjust in Project Settings > Node to Code."),
+								Depth, Depth
+							));
 						})
-						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 7))
-						.ColorAndOpacity(UIBind(&FN2CUIColors::AccentOrange)) // Orange to indicate active nesting
+						[
+							SNew(STextBlock)
+							.Text_Lambda([]() -> FText
+							{
+								int32 Depth = FN2CTokenEstimationService::Get().GetTranslationDepth();
+								return FText::FromString(FString::Printf(TEXT("N:%d"), Depth));
+							})
+							.Font(FN2CFonts::TinyBold())
+							.ColorAndOpacity(UIBind(&FN2CUIColors::AccentOrange))
+						]
 					]
 				]
 			]
@@ -793,9 +749,8 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 		]
 	];
 
-	return SNew(SBorder)
-		.BorderImage(&N2CStyle::GetPanelBorderBrush())
-		.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
+	return SNew(SN2CPanel)
+		.Variant(EN2CPanelVariant::Light)
 		.Padding(0.0f)
 		[
 			SNew(SBox)

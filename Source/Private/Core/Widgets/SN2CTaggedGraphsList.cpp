@@ -12,6 +12,8 @@
 #include "Widgets/Input/SButton.h"
 #include "Styling/AppStyle.h"
 #include "Models/N2CStyle.h"
+#include "Core/Widgets/SN2CPanel.h"
+#include "Core/N2CDesignTokens.h"
 #include "Misc/Paths.h"
 #include "Models/N2CLogging.h"
 
@@ -76,10 +78,9 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 		.AutoHeight()
 		.Padding(0.0f, 0.0f, 0.0, 4.0f)
 		[
-			SNew(SBorder)
-			.BorderImage(&N2CStyle::GetPanelBorderBrush())
-			.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
-			.Padding(4.0f)
+			SNew(SN2CPanel)
+			.Variant(EN2CPanelVariant::Light)
+			.Padding(FN2CSpacing::XS)
 			[
 				SAssignNew(HeaderPathText, STextBlock)
 				.Text(LOCTEXT("SelectTagPrompt", "Select a category or tag"))
@@ -90,10 +91,9 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
-			SNew(SBorder)
-			.BorderImage(&N2CStyle::GetPanelBorderBrush())
-			.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanel))
-			.Padding(0.0f)
+			SNew(SN2CPanel)
+			.Variant(EN2CPanelVariant::Light)
+			.Padding(0)
 			[
 				SAssignNew(ListView, SListView<TSharedPtr<FN2CGraphListItem>>)
 				.ListItemsSource(&FilteredItems)
