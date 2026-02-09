@@ -52,6 +52,17 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SVerticalBox)
+		// Context Window Visualizer (shows provider, model, token usage estimate)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(4.0f, 4.0f, 4.0f, 2.0f)
+		[
+			SNew(SBox)
+			.Visibility(InArgs._ShowActionBar ? EVisibility::Visible : EVisibility::Collapsed)
+			[
+				SAssignNew(ContextVisualizer, SN2CContextWindowVisualizer)
+			]
+		]
 		// Search bar (optional)
 		+ SVerticalBox::Slot()
 		.AutoHeight()
@@ -96,17 +107,6 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 				.OnSingleTranslateRequested(FSimpleDelegate::CreateSP(this, &SN2CTagManager::HandleSingleTranslateRequested))
 				.OnSingleJsonExportRequested(FSimpleDelegate::CreateSP(this, &SN2CTagManager::HandleSingleJsonExportRequested))
 				.OnViewTranslationRequested(FSimpleDelegate::CreateSP(this, &SN2CTagManager::HandleViewTranslationRequested))
-			]
-		]
-		// Context Window Visualizer (shows token usage estimate)
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(4.0f)
-		[
-			SNew(SBox)
-			.Visibility(InArgs._ShowActionBar ? EVisibility::Visible : EVisibility::Collapsed)
-			[
-				SAssignNew(ContextVisualizer, SN2CContextWindowVisualizer)
 			]
 		]
 		// Actions bar (optional)
