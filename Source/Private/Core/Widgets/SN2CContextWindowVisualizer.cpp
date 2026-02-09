@@ -8,7 +8,6 @@
 #include "Core/N2CDesignTokens.h"
 #include "LLM/N2CLLMModelRegistry.h"
 #include "LLM/N2CLLMModels.h"
-#include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
@@ -45,7 +44,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 			// Provider/Model selection row
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.Padding(0.0f, 0.0f, 0.0f, 6.0f)
+			.Padding(0.0f, 0.0f, 0.0f, FN2CSpacing::SM)
 			[
 				SNew(SHorizontalBox)
 
@@ -61,7 +60,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
-				.Padding(0.0f, 0.0f, 12.0f, 0.0f)
+				.Padding(0.0f, 0.0f, FN2CSpacing::LG, 0.0f)
 				[
 					SAssignNew(ProviderComboBox, SComboBox<TSharedPtr<FString>>)
 					.ComboBoxStyle(&N2CStyle::GetComboBoxStyle())
@@ -91,7 +90,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
 				.VAlign(VAlign_Center)
-				.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+				.Padding(0.0f, 0.0f, FN2CSpacing::MD, 0.0f)
 				[
 					SAssignNew(ModelSelectionContainer, SBox)
 				]
@@ -105,7 +104,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 					.ButtonStyle(&N2CStyle::GetSimpleButtonStyle())
 					.OnClicked(this, &SN2CContextWindowVisualizer::OnSettingsClicked)
 					.ToolTipText(LOCTEXT("SettingsTooltip", "Open NodeToCode Settings"))
-					.ContentPadding(FMargin(2.0f))
+					.ContentPadding(FMargin(FN2CSpacing::XXS))
 					[
 						SNew(SImage)
 						.Image(FSlateIcon(FName("CoreStyle"), "Icons.Toolbar.Settings").GetIcon())
@@ -117,7 +116,7 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 			// Total token count row
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.Padding(0.0f, 0.0f, 0.0f, 2.0f)
+			.Padding(0.0f, 0.0f, 0.0f, FN2CSpacing::XXS)
 			[
 				SAssignNew(TokenCountTextBlock, STextBlock)
 				.Text(this, &SN2CContextWindowVisualizer::GetTokenCountText)
@@ -136,24 +135,23 @@ void SN2CContextWindowVisualizer::Construct(const FArguments& InArgs)
 			// Nested translation warning row (only visible when nesting is enabled)
 			+ SVerticalBox::Slot()
 			.AutoHeight()
-			.Padding(0.0f, 6.0f, 0.0f, 0.0f)
+			.Padding(0.0f, FN2CSpacing::SM, 0.0f, 0.0f)
 			[
-				SNew(SBorder)
+				SNew(SN2CPanel)
 				.Visibility_Lambda([]() -> EVisibility
 				{
 					return FN2CTokenEstimationService::Get().IsNestedTranslationEnabled()
 						? EVisibility::Visible
 						: EVisibility::Collapsed;
 				})
-				.BorderImage(&N2CStyle::GetDarkPanelBorderBrush())
-				.BorderBackgroundColor(UIBind(&FN2CUIColors::BgPanelDarker))
-				.Padding(FMargin(6.0f, 4.0f))
+				.Variant(EN2CPanelVariant::Dark)
+				.Padding(FMargin(FN2CSpacing::SM, FN2CSpacing::XS))
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					.VAlign(VAlign_Center)
-					.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+					.Padding(0.0f, 0.0f, FN2CSpacing::XS, 0.0f)
 					[
 						SNew(STextBlock)
 						.Text(FText::FromString(TEXT("\u26A0"))) // Warning symbol
@@ -295,6 +293,7 @@ void SN2CContextWindowVisualizer::RebuildModelSelectionWidget()
 		ModelComboBox.Reset();
 		ModelSelectionContainer->SetContent(
 			SAssignNew(LocalModelTextBox, SEditableTextBox)
+			.Style(&N2CStyle::GetEditableTextBoxStyle())
 			.Text(this, &SN2CContextWindowVisualizer::GetLocalModelText)
 			.OnTextCommitted(this, &SN2CContextWindowVisualizer::OnLocalModelTextCommitted)
 			.MinDesiredWidth(150.0f)
@@ -470,14 +469,16 @@ TSharedRef<SWidget> SN2CContextWindowVisualizer::GenerateProviderWidget(TSharedP
 {
 	return SNew(STextBlock)
 		.Text(FText::FromString(*Item))
-		.Margin(FMargin(4.0f, 2.0f));
+		.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
+		.Margin(FMargin(FN2CSpacing::XS, FN2CSpacing::XXS));
 }
 
 TSharedRef<SWidget> SN2CContextWindowVisualizer::GenerateModelWidget(TSharedPtr<FString> Item)
 {
 	return SNew(STextBlock)
 		.Text(FText::FromString(*Item))
-		.Margin(FMargin(4.0f, 2.0f));
+		.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
+		.Margin(FMargin(FN2CSpacing::XS, FN2CSpacing::XXS));
 }
 
 FText SN2CContextWindowVisualizer::GetCurrentProviderText() const

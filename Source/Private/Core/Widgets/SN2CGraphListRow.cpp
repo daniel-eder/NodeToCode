@@ -61,6 +61,7 @@ void SN2CGraphListRow::Construct(const FArguments& InArgs)
 					.WidthOverride(22.0f)
 					[
 						SNew(SCheckBox)
+						.Style(&N2CStyle::GetCheckBoxStyle())
 						.IsChecked(this, &SN2CGraphListRow::GetCheckboxState)
 						.OnCheckStateChanged(this, &SN2CGraphListRow::OnCheckboxStateChanged)
 					]

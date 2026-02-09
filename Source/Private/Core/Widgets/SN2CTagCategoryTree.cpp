@@ -304,7 +304,7 @@ TSharedRef<ITableRow> SN2CTagCategoryTree::OnGenerateRow(TSharedPtr<FN2CTreeItem
 					? FAppStyle::GetBrush("Icons.FolderOpen")
 					: FAppStyle::GetBrush("Icons.FolderClosed");
 			})
-			.ColorAndOpacity(FSlateColor::UseForeground())
+			.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 		)
 		: StaticCastSharedRef<SWidget>(
 			SNew(SImage)
@@ -313,6 +313,7 @@ TSharedRef<ITableRow> SN2CTagCategoryTree::OnGenerateRow(TSharedPtr<FN2CTreeItem
 		);
 
 	return SNew(STableRow<TSharedPtr<FN2CTreeItem>>, OwnerTable)
+		.Style(&N2CStyle::GetTableRowStyle())
 		.Padding(FMargin(Item->IsTag() ? 16.0f : 0.0f, 2.0f, 0.0f, 2.0f))
 		[
 			SNew(SHorizontalBox)
@@ -330,6 +331,7 @@ TSharedRef<ITableRow> SN2CTagCategoryTree::OnGenerateRow(TSharedPtr<FN2CTreeItem
 				SNew(STextBlock)
 				.Text(DisplayText)
 				.Font(Item->IsCategory() ? FAppStyle::GetFontStyle("NormalFontBold") : FAppStyle::GetFontStyle("NormalFont"))
+				.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 			]
 		];
 }

@@ -43,6 +43,7 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 	// intercepts mouse clicks for column sorting, preventing the checkbox's OnCheckStateChanged
 	// from being triggered. The button ensures our click handler is called.
 	HeaderRow = SNew(SHeaderRow)
+		.Style(&N2CStyle::GetHeaderRowStyle())
 		+ SHeaderRow::Column(Column_Checkbox)
 		.DefaultLabel(FText::GetEmpty())
 		.FixedWidth(30.0f)
@@ -54,6 +55,7 @@ void SN2CTaggedGraphsList::Construct(const FArguments& InArgs)
 			.OnClicked(this, &SN2CTaggedGraphsList::OnSelectAllClicked)
 			[
 				SNew(SCheckBox)
+				.Style(&N2CStyle::GetCheckBoxStyle())
 				.IsChecked(this, &SN2CTaggedGraphsList::GetSelectAllCheckboxState)
 				// HitTestInvisible makes the checkbox not respond to clicks
 				// while still appearing enabled - the parent button handles the click
@@ -240,7 +242,7 @@ FN2CTagInfo SN2CTaggedGraphsList::GetViewTranslationRequestedGraph() const
 TSharedRef<ITableRow> SN2CTaggedGraphsList::OnGenerateRow(TSharedPtr<FN2CGraphListItem> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return SNew(STableRow<TSharedPtr<FN2CGraphListItem>>, OwnerTable)
-		.Style(&FAppStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row"))
+		.Style(&N2CStyle::GetTableRowStyle())
 		.Padding(0)
 		[
 			SNew(SN2CGraphListRow)

@@ -326,6 +326,7 @@ void UN2CSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
                 N2CStyle::UpdateButtonStyles();
                 N2CStyle::UpdateBorderBrushes();
                 N2CStyle::UpdateComboBoxStyle();
+                N2CStyle::UpdateWidgetStyles();
             }
         }
     }

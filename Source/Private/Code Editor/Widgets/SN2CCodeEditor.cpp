@@ -4,6 +4,7 @@
 #include "Widgets/Text/SMultiLineEditableText.h"
 #include "Code Editor/Syntax/N2CRichTextSyntaxHighlighter.h"
 #include "Code Editor/Models/N2CCodeEditorStyle.h"
+#include "Models/N2CStyle.h"
 
 void SN2CCodeEditor::Construct(const FArguments& InArgs)
 {
@@ -15,11 +16,13 @@ void SN2CCodeEditor::Construct(const FArguments& InArgs)
 
     // Create scrollbars
     HorizontalScrollBar = SNew(SScrollBar)
+        .Style(&N2CStyle::GetScrollBarStyle())
         .Orientation(Orient_Horizontal)
         .Padding(2)
         .Thickness(FVector2D(6.0f, 6.0f));
 
     VerticalScrollBar = SNew(SScrollBar)
+        .Style(&N2CStyle::GetScrollBarStyle())
         .Orientation(Orient_Vertical)
         .Padding(2)
         .Thickness(FVector2D(6.0f, 6.0f));

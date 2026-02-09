@@ -30,10 +30,18 @@ public:
     static const FComboBoxStyle& GetComboBoxStyle();
     static const FTableRowStyle& GetComboRowStyle();
 
+    // Widget style accessors — return stable pointers for live updates
+    static const FCheckBoxStyle& GetCheckBoxStyle();
+    static const FEditableTextBoxStyle& GetEditableTextBoxStyle();
+    static const FTableRowStyle& GetTableRowStyle();
+    static const FHeaderRowStyle& GetHeaderRowStyle();
+    static const FScrollBarStyle& GetScrollBarStyle();
+
     // Update styles in-place from current palette (called on settings change)
     static void UpdateButtonStyles();
     static void UpdateBorderBrushes();
     static void UpdateComboBoxStyle();
+    static void UpdateWidgetStyles();
 
 private:
     static TSharedRef<FSlateStyleSet> Create();
@@ -51,6 +59,13 @@ private:
     // Static combo box styles
     static FComboBoxStyle N2CComboBoxStyle;
     static FTableRowStyle N2CComboRowStyle;
+
+    // Static widget styles
+    static FCheckBoxStyle N2CCheckBoxStyle;
+    static FEditableTextBoxStyle N2CEditableTextBoxStyle;
+    static FTableRowStyle N2CTableRowStyle;
+    static FHeaderRowStyle N2CHeaderRowStyle;
+    static FScrollBarStyle N2CScrollBarStyle;
 };
 
 // Add macro for plugin brushes

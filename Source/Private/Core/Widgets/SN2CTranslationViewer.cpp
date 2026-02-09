@@ -178,12 +178,12 @@ TSharedRef<SWidget> SN2CTranslationViewer::CreateFileTab(const FString& Label, c
 {
 	return SAssignNew(OutButton, SButton)
 		.ButtonStyle(&N2CStyle::GetButtonStyle())
-		.ContentPadding(FMargin(12.0f, 4.0f))
+		.ContentPadding(FMargin(FN2CSpacing::LG, FN2CSpacing::XS))
 		.OnClicked(this, &SN2CTranslationViewer::HandleFileTabClicked, FileType)
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString(Label))
-			.Font(FCoreStyle::GetDefaultFontStyle("Regular", 11))
+			.Font(FN2CFonts::Medium())
 			.ColorAndOpacity(this, &SN2CTranslationViewer::GetTabTextColor, FileType)
 		];
 }

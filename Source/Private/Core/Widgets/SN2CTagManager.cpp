@@ -66,6 +66,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 				.FillWidth(1.0f)
 				[
 					SAssignNew(SearchBox, SEditableTextBox)
+					.Style(&N2CStyle::GetEditableTextBoxStyle())
 					.HintText(LOCTEXT("SearchHint", "Search tags or graphs..."))
 					.OnTextChanged(this, &SN2CTagManager::HandleSearchTextChanged)
 				]
@@ -151,6 +152,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 								[
 									SNew(STextBlock)
 									.Text(LOCTEXT("SelectionLabel", "Selection: "))
+									.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
 								]
 								+ SHorizontalBox::Slot()
 								.AutoWidth()
@@ -220,6 +222,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 							.VAlign(VAlign_Center)
 							[
 								SAssignNew(MinifyCheckbox, SCheckBox)
+								.Style(&N2CStyle::GetCheckBoxStyle())
 								.IsChecked(bMinifyJson ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 								.OnCheckStateChanged_Lambda([this](ECheckBoxState NewState)
 								{
@@ -233,6 +236,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 							[
 								SNew(STextBlock)
 								.Text(LOCTEXT("MinifyJsonLabel", "Minify JSON"))
+								.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
 							]
 						]
 						// Output path
@@ -243,6 +247,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						[
 							SNew(STextBlock)
 							.Text(LOCTEXT("OutputLabel", "Output:"))
+							.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
 						]
 						+ SHorizontalBox::Slot()
 						.FillWidth(1.0f)
@@ -250,6 +255,7 @@ void SN2CTagManager::Construct(const FArguments& InArgs)
 						.Padding(0.0f, 0.0f, 4.0f, 0.0f)
 						[
 							SAssignNew(OutputPathBox, SEditableTextBox)
+							.Style(&N2CStyle::GetEditableTextBoxStyle())
 							.Text(FText::FromString(OutputPath))
 							.IsReadOnly(true)
 						]

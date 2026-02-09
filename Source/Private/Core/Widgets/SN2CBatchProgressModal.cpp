@@ -55,7 +55,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("ModalHeader", "Batch Translation in Progress"))
-						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 13))
+						.Font(FN2CFonts::LargeBold())
 						.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 					]
 				]
@@ -63,14 +63,14 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 				// Body
 				+ SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding(16.0f)
+				.Padding(FN2CSpacing::XL)
 				[
 					SNew(SVerticalBox)
 
 					// Current item text
 					+ SVerticalBox::Slot()
 					.AutoHeight()
-					.Padding(0.0f, 0.0f, 0.0f, 12.0f)
+					.Padding(0.0f, 0.0f, 0.0f, FN2CSpacing::LG)
 					[
 						SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot()
@@ -86,29 +86,29 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 							SAssignNew(CurrentItemText, STextBlock)
 							.Text(LOCTEXT("Waiting", "Waiting..."))
 							.ColorAndOpacity(UIBind(&FN2CUIColors::AccentOrange))
-							.Font(FCoreStyle::GetDefaultFontStyle("Mono", 12))
+							.Font(FN2CFonts::Mono())
 						]
 					]
 
 					// Progress bar
 					+ SVerticalBox::Slot()
 					.AutoHeight()
-					.Padding(0.0f, 0.0f, 0.0f, 8.0f)
+					.Padding(0.0f, 0.0f, 0.0f, FN2CSpacing::MD)
 					[
 						SNew(SBox)
-						.HeightOverride(6.0f)
+						.HeightOverride(FN2CSpacing::SM)
 						[
 							SNew(SProgressBar)
 							.Percent(this, &SN2CBatchProgressModal::GetProgressBarPercent)
 							.FillColorAndOpacity(UIBind(&FN2CUIColors::AccentOrange))
-							.BackgroundImage(FAppStyle::GetBrush("ProgressBar.Background"))
+							.BackgroundImage(&N2CStyle::GetDarkPanelBorderBrush())
 						]
 					]
 
 					// Progress count
 					+ SVerticalBox::Slot()
 					.AutoHeight()
-					.Padding(0.0f, 0.0f, 0.0f, 16.0f)
+					.Padding(0.0f, 0.0f, 0.0f, FN2CSpacing::XL)
 					[
 						SNew(SBox)
 						.HAlign(HAlign_Right)
@@ -116,7 +116,7 @@ void SN2CBatchProgressModal::Construct(const FArguments& InArgs)
 							SAssignNew(ProgressCountText, STextBlock)
 							.Text(LOCTEXT("InitialCount", "0 / 0"))
 							.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
-							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 11))
+							.Font(FN2CFonts::Medium())
 						]
 					]
 
@@ -359,17 +359,17 @@ TSharedRef<ITableRow> SN2CBatchProgressModal::GenerateProgressRow(TSharedPtr<FN2
 	TSharedPtr<FN2CBatchProgressItem> ItemPtr = Item;
 
 	return SNew(STableRow<TSharedPtr<FN2CBatchProgressItem>>, OwnerTable)
-		.Padding(FMargin(8.0f, 4.0f))
+		.Padding(FMargin(FN2CSpacing::MD, FN2CSpacing::XS))
 		[
 			SNew(SHorizontalBox)
 			// Status icon
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+			.Padding(0.0f, 0.0f, FN2CSpacing::MD, 0.0f)
 			.VAlign(VAlign_Center)
 			[
 				SNew(SBox)
-				.WidthOverride(16.0f)
+				.WidthOverride(FN2CSizing::IconMD)
 				.HAlign(HAlign_Center)
 				[
 					SNew(STextBlock)
@@ -385,7 +385,7 @@ TSharedRef<ITableRow> SN2CBatchProgressModal::GenerateProgressRow(TSharedPtr<FN2
 			[
 				SNew(STextBlock)
 				.Text(FText::FromString(Item->GraphName))
-				.Font(FCoreStyle::GetDefaultFontStyle("Mono", 11))
+				.Font(FN2CFonts::MonoSmall())
 				// Use attribute binding to dynamically query current status
 				.ColorAndOpacity_Lambda([this, ItemPtr]() { return GetItemTextColor(ItemPtr->Status); })
 			]

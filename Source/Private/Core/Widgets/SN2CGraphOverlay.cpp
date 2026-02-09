@@ -103,6 +103,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 				SNew(SSeparator)
 				.Orientation(Orient_Vertical)
 				.Thickness(FN2CSizing::SeparatorThickness)
+				.ColorAndOpacity(UIBind(&FN2CUIColors::BorderSubtle))
 			]
 
 			// Tag button with count badge
@@ -137,6 +138,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 				SNew(SSeparator)
 				.Orientation(Orient_Vertical)
 				.Thickness(FN2CSizing::SeparatorThickness)
+				.ColorAndOpacity(UIBind(&FN2CUIColors::BorderSubtle))
 			]
 
 			// Copy JSON button
@@ -162,6 +164,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 				SNew(SSeparator)
 				.Orientation(Orient_Vertical)
 				.Thickness(FN2CSizing::SeparatorThickness)
+				.ColorAndOpacity(UIBind(&FN2CUIColors::BorderSubtle))
 			]
 
 			// Translate button (custom layout due to spinner)
@@ -220,6 +223,7 @@ void SN2CGraphOverlay::Construct(const FArguments& InArgs)
 				SNew(SSeparator)
 				.Orientation(Orient_Vertical)
 				.Thickness(FN2CSizing::SeparatorThickness)
+				.ColorAndOpacity(UIBind(&FN2CUIColors::BorderSubtle))
 			]
 
 			// Context usage circular progress with percentage overlay
@@ -442,20 +446,21 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	// Header
 	TagList->AddSlot()
 	.AutoHeight()
-	.Padding(8.0f, 6.0f)
+	.Padding(FN2CSpacing::MD, FN2CSpacing::SM)
 	[
 		SNew(STextBlock)
 		.Text(FText::Format(LOCTEXT("TagsForGraph", "Tags for \"{0}\""), FText::FromString(GraphName)))
-		.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
+		.Font(FN2CFonts::RegularBold())
 		.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 	];
 
 	// Separator
 	TagList->AddSlot()
 	.AutoHeight()
-	.Padding(8.0f, 0.0f)
+	.Padding(FN2CSpacing::MD, 0.0f)
 	[
 		SNew(SSeparator)
+		.ColorAndOpacity(UIBind(&FN2CUIColors::BorderSubtle))
 	];
 
 	// Tag list
@@ -466,7 +471,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 		for (const FN2CTaggedBlueprintGraph& TagItem : Tags)
 		{
 			ScrollBox->AddSlot()
-			.Padding(8.0f, 4.0f)
+			.Padding(FN2CSpacing::MD, FN2CSpacing::XS)
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
@@ -475,17 +480,18 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(TEXT("\u2022"))) // Bullet character
-					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
+					.Font(FN2CFonts::Small())
 					.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 				]
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
 				.VAlign(VAlign_Center)
-				.Padding(4.0f, 0.0f)
+				.Padding(FN2CSpacing::XS, 0.0f)
 				[
 					SNew(STextBlock)
 					.Text(FText::Format(LOCTEXT("TagDisplay", "{0} ({1})"),
 						FText::FromString(TagItem.Tag), FText::FromString(TagItem.Category)))
+					.ColorAndOpacity(UIBind(&FN2CUIColors::TextPrimary))
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -499,7 +505,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 						OnRemoveTagRequested(TagItem);
 						return FReply::Handled();
 					})
-					.ContentPadding(FMargin(2.0f))
+					.ContentPadding(FMargin(FN2CSpacing::XXS))
 					[
 						SNew(SImage)
 						.Image(FAppStyle::GetBrush("Icons.X"))
@@ -520,11 +526,11 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	{
 		TagList->AddSlot()
 		.AutoHeight()
-		.Padding(8.0f, 8.0f)
+		.Padding(FN2CSpacing::MD)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("NoTags", "No tags applied"))
-			.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
+			.Font(FN2CFonts::Regular())
 			.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 		];
 	}
@@ -532,19 +538,20 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	// Separator
 	TagList->AddSlot()
 	.AutoHeight()
-	.Padding(8.0f, 4.0f)
+	.Padding(FN2CSpacing::MD, FN2CSpacing::XS)
 	[
 		SNew(SSeparator)
+		.ColorAndOpacity(UIBind(&FN2CUIColors::BorderSubtle))
 	];
 
 	// Add new tag section header
 	TagList->AddSlot()
 	.AutoHeight()
-	.Padding(8.0f, 4.0f, 8.0f, 2.0f)
+	.Padding(FN2CSpacing::MD, FN2CSpacing::XS, FN2CSpacing::MD, FN2CSpacing::XXS)
 	[
 		SNew(STextBlock)
 		.Text(LOCTEXT("AddNewTagHeader", "Add New Tag"))
-		.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
+		.Font(FN2CFonts::Small())
 		.ColorAndOpacity(UIBind(&FN2CUIColors::TextMuted))
 	];
 
@@ -580,19 +587,20 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	// Tag name row with combo box and text input
 	TagList->AddSlot()
 	.AutoHeight()
-	.Padding(8.0f, 2.0f, 8.0f, 2.0f)
+	.Padding(FN2CSpacing::MD, FN2CSpacing::XXS, FN2CSpacing::MD, FN2CSpacing::XXS)
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.VAlign(VAlign_Center)
-		.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+		.Padding(0.0f, 0.0f, FN2CSpacing::MD, 0.0f)
 		[
 			SNew(SBox)
 			.WidthOverride(60.0f)
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("TagLabel", "Tag:"))
+				.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
 			]
 		]
 		+ SHorizontalBox::Slot()
@@ -605,12 +613,13 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 			.FillWidth(1.0f)
 			[
 				SAssignNew(TagInputBox, SEditableTextBox)
+				.Style(&N2CStyle::GetEditableTextBoxStyle())
 				.HintText(LOCTEXT("TagNameHint", "Enter or select..."))
 			]
 			// Dropdown button for existing tags (only show if there are existing tags)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+			.Padding(FN2CSpacing::XXS, 0.0f, 0.0f, 0.0f)
 			[
 				SNew(SBox)
 				.Visibility(TagOptions.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed)
@@ -642,19 +651,20 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	// Category row with combo box and text input
 	TagList->AddSlot()
 	.AutoHeight()
-	.Padding(8.0f, 2.0f, 8.0f, 4.0f)
+	.Padding(FN2CSpacing::MD, FN2CSpacing::XXS, FN2CSpacing::MD, FN2CSpacing::XS)
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.VAlign(VAlign_Center)
-		.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+		.Padding(0.0f, 0.0f, FN2CSpacing::MD, 0.0f)
 		[
 			SNew(SBox)
 			.WidthOverride(60.0f)
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("CategoryLabel", "Category:"))
+				.ColorAndOpacity(UIBind(&FN2CUIColors::TextSecondary))
 			]
 		]
 		+ SHorizontalBox::Slot()
@@ -667,13 +677,14 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 			.FillWidth(1.0f)
 			[
 				SAssignNew(CategoryInputBox, SEditableTextBox)
+				.Style(&N2CStyle::GetEditableTextBoxStyle())
 				.HintText(LOCTEXT("CategoryHint", "Enter or select..."))
 				.Text(FText::FromString(TEXT("Default")))
 			]
 			// Dropdown button for existing categories
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+			.Padding(FN2CSpacing::XXS, 0.0f, 0.0f, 0.0f)
 			[
 				SAssignNew(CategoryComboBox, SComboBox<TSharedPtr<FString>>)
 				.ComboBoxStyle(&N2CStyle::GetComboBoxStyle())
@@ -701,7 +712,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 	// Add button
 	TagList->AddSlot()
 	.AutoHeight()
-	.Padding(8.0f, 4.0f, 8.0f, 8.0f)
+	.Padding(FN2CSpacing::MD, FN2CSpacing::XS, FN2CSpacing::MD, FN2CSpacing::MD)
 	[
 		SNew(SButton)
 		.ButtonStyle(&N2CStyle::GetButtonStyle())
@@ -727,7 +738,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 			}
 			return FReply::Handled();
 		})
-		.ContentPadding(FMargin(8.0f, 4.0f))
+		.ContentPadding(FMargin(FN2CSpacing::MD, FN2CSpacing::XS))
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -741,7 +752,7 @@ TSharedRef<SWidget> SN2CGraphOverlay::CreateTagPopoverContent()
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+			.Padding(FN2CSpacing::XS, 0.0f, 0.0f, 0.0f)
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("AddTagButton", "Add Tag"))
