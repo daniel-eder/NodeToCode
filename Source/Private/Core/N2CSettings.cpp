@@ -311,12 +311,7 @@ void UN2CSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
         if (MemberProp)
         {
             const FName MemberName = MemberProp->GetFName();
-            if (MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, CPPThemes) ||
-                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, PythonThemes) ||
-                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, JavaScriptThemes) ||
-                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, CSharpThemes) ||
-                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, SwiftThemes) ||
-                MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, PseudocodeThemes))
+            if (MemberName == GET_MEMBER_NAME_CHECKED(UN2CSettings, CodeEditorTheme))
             {
                 FN2CCodeEditorStyle::Reinitialize();
             }
@@ -391,40 +386,7 @@ FString UN2CSettings::GetActiveModelForProvider(EN2CLLMProvider InProvider) cons
 #undef LOCTEXT_NAMESPACE
 const FN2CCodeEditorColors* UN2CSettings::GetThemeColors(EN2CCodeLanguage Language, const FName& ThemeName) const
 {
-    const FN2CCodeEditorThemes* Themes = nullptr;
-    switch (Language)
-    {
-        case EN2CCodeLanguage::Cpp:
-            Themes = &CPPThemes;
-            break;
-        case EN2CCodeLanguage::Python:
-            Themes = &PythonThemes;
-            break;
-        case EN2CCodeLanguage::JavaScript:
-            Themes = &JavaScriptThemes;
-            break;
-        case EN2CCodeLanguage::CSharp:
-            Themes = &CSharpThemes;
-            break;
-        case EN2CCodeLanguage::Swift:
-            Themes = &SwiftThemes;
-            break;
-        case EN2CCodeLanguage::Pseudocode:
-            Themes = &PseudocodeThemes;
-            break;
-    }
-
-    if (Themes)
-    {
-        if (const FN2CCodeEditorColors* Colors = Themes->Themes.Find(ThemeName))
-        {
-            return Colors;
-        }
-        // Fallback to "Unreal Engine" theme if specified theme not found
-        return Themes->Themes.Find(FName("Unreal Engine"));
-    }
-
-    return nullptr;
+    return CodeEditorTheme.Themes.Find(FName("Unreal Engine"));
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -6,10 +6,11 @@
 #include "Code Editor/Models/N2CCodeEditorStyle.h"
 #include "Models/N2CStyle.h"
 
+const FName SN2CCodeEditor::CurrentTheme = FName(TEXT("Unreal Engine"));
+
 void SN2CCodeEditor::Construct(const FArguments& InArgs)
 {
     CurrentLanguage = InArgs._Language;
-    CurrentTheme = InArgs._ThemeName.IsNone() ? FName(TEXT("Midnight Code")) : InArgs._ThemeName;
     TabSize = 4; // Default tab size
     FontSize = 9; // Default font size
     CreateSyntaxHighlighter(CurrentLanguage);
@@ -164,23 +165,6 @@ void SN2CCodeEditor::CreateSyntaxHighlighter(EN2CCodeLanguage Language)
     BaseStyle.SetFont(FCoreStyle::GetDefaultFontStyle("Mono", FontSize));
     
     SyntaxHighlighter = FN2CRichTextSyntaxHighlighter::Create(Language, CurrentTheme, BaseStyle);
-}
-
-void SN2CCodeEditor::SetTheme(const FName& NewTheme)
-{
-    if (CurrentTheme != NewTheme)
-    {
-        CurrentTheme = NewTheme;
-        
-        // Update the syntax highlighter with new theme
-        CreateSyntaxHighlighter(CurrentLanguage);
-        
-        // Force a redraw
-        if (EditableText.IsValid())
-        {
-            EditableText->Invalidate(EInvalidateWidget::Layout);
-        }
-    }
 }
 
 void SN2CCodeEditor::OnTextChanged(const FText& NewText)

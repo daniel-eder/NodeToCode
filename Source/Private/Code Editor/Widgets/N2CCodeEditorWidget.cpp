@@ -18,8 +18,7 @@ TSharedRef<SWidget> UN2CCodeEditorWidget::RebuildWidget()
 {
     CodeEditorWidget = SNew(SN2CCodeEditor)
         .Text(Text)
-        .Language(Language)
-        .ThemeName(ThemeName);
+        .Language(Language);
         
     // Apply initial properties
     if (CodeEditorWidget.IsValid())
@@ -169,17 +168,6 @@ void UN2CCodeEditorWidget::SetWordWrap(bool bEnable)
     }
 }
 
-void UN2CCodeEditorWidget::SetTheme(const FName& NewTheme)
-{
-    ThemeName = NewTheme;
-    if (CodeEditorWidget.IsValid())
-    {
-        CodeEditorWidget->SetTheme(NewTheme);
-        SynchronizeProperties();
-    }
-    
-}
-
 void UN2CCodeEditorWidget::SetTabSize(int32 NewSize)
 {
     TabSize = FMath::Clamp(NewSize, 1, 8);
@@ -198,63 +186,3 @@ void UN2CCodeEditorWidget::ReleaseSlateResources(bool bReleaseChildren)
 }
 
 #undef LOCTEXT_NAMESPACE
-TArray<FName> UN2CCodeEditorWidget::GetAvailableThemes() const
-{
-    TArray<FName> ThemeNames;
-    const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    
-    switch (Language)
-    {
-        case EN2CCodeLanguage::Cpp:
-            Settings->CPPThemes.Themes.GetKeys(ThemeNames);
-            break;
-        case EN2CCodeLanguage::Python:
-            Settings->PythonThemes.Themes.GetKeys(ThemeNames);
-            break;
-        case EN2CCodeLanguage::JavaScript:
-            Settings->JavaScriptThemes.Themes.GetKeys(ThemeNames);
-            break;
-        case EN2CCodeLanguage::CSharp:
-            Settings->CSharpThemes.Themes.GetKeys(ThemeNames);
-            break;
-        case EN2CCodeLanguage::Swift:
-            Settings->SwiftThemes.Themes.GetKeys(ThemeNames);
-            break;
-        case EN2CCodeLanguage::Pseudocode:
-            Settings->PseudocodeThemes.Themes.GetKeys(ThemeNames);
-            break;
-    }
-    
-    return ThemeNames;
-}
-
-FN2CCodeEditorColors UN2CCodeEditorWidget::GetThemeFromName(const FName Name) const
-{
-    const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    
-    switch (Language)
-    {
-    case EN2CCodeLanguage::Cpp:
-        return *Settings->CPPThemes.Themes.Find(Name);
-    case EN2CCodeLanguage::Python:
-        return *Settings->PythonThemes.Themes.Find(Name);
-    case EN2CCodeLanguage::JavaScript:
-        return *Settings->JavaScriptThemes.Themes.Find(Name);
-    case EN2CCodeLanguage::CSharp:
-        return *Settings->CSharpThemes.Themes.Find(Name);
-    case EN2CCodeLanguage::Swift:
-        return *Settings->SwiftThemes.Themes.Find(Name);
-    case EN2CCodeLanguage::Pseudocode:
-        return *Settings->PseudocodeThemes.Themes.Find(Name);
-    }
-
-    const FName DefaultThemeName = "Unreal Engine";
-
-    return *Settings->CPPThemes.Themes.Find(DefaultThemeName);
-    
-}
-
-FName UN2CCodeEditorWidget::GetCurrentTheme() const
-{
-    return ThemeName;
-}

@@ -367,26 +367,7 @@ TArray<FName> FN2CEditorIntegration::GetAvailableThemes(EN2CCodeLanguage Languag
 {
     TArray<FName> ThemeNames;
     const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    
-    switch (Language)
-    {
-        case EN2CCodeLanguage::Cpp:
-            Settings->CPPThemes.Themes.GetKeys(ThemeNames);
-            break;
-        case EN2CCodeLanguage::Python:
-            Settings->PythonThemes.Themes.GetKeys(ThemeNames);
-            break;
-        case EN2CCodeLanguage::JavaScript:
-            Settings->JavaScriptThemes.Themes.GetKeys(ThemeNames);
-            break;
-        case EN2CCodeLanguage::CSharp:
-            Settings->CSharpThemes.Themes.GetKeys(ThemeNames);
-            break;
-        case EN2CCodeLanguage::Swift:
-            Settings->SwiftThemes.Themes.GetKeys(ThemeNames);
-            break;
-    }
-    
+    Settings->CodeEditorTheme.Themes.GetKeys(ThemeNames);
     return ThemeNames;
 }
 

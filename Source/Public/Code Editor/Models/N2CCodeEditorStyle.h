@@ -22,12 +22,7 @@ public:
 
 private:
     static void InitializeLanguageStyles();
-    static void InitializeCPPStyles();
-    static void InitializePythonStyles();
-    static void InitializeJavaScriptStyles();
-    static void InitializeCSharpStyles();
-    static void InitializeSwiftStyles();
-    static void InitializePseudocodeStyles();
+    static void InitializeStylesForLanguage(const FName& LanguageId, const struct FN2CCodeEditorColors& Colors, bool bIsPseudocode = false);
 
     static TSharedPtr<FSlateStyleSet> StyleSet;
     static FTextBlockStyle CreateDefaultTextStyle(const FName& TypeName);

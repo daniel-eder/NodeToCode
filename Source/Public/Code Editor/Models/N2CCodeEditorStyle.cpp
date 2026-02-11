@@ -33,9 +33,9 @@ void FN2CCodeEditorStyle::Initialize()
 
     StyleSet->Set("N2CCodeEditor.TextEditor.NormalText", NormalText);
     const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    if (Settings && Settings->CPPThemes.Themes.Contains(TEXT("Unreal Engine")))
+    if (Settings && Settings->CodeEditorTheme.Themes.Contains(TEXT("Unreal Engine")))
     {
-        const FN2CCodeEditorColors& Colors = *Settings->CPPThemes.Themes.Find(TEXT("Unreal Engine"));
+        const FN2CCodeEditorColors& Colors = *Settings->CodeEditorTheme.Themes.Find(TEXT("Unreal Engine"));
         StyleSet->Set("N2CCodeEditor.TextEditor.Border", new FSlateColorBrush(FLinearColor(Colors.Background)));
     }
     else
@@ -52,248 +52,51 @@ void FN2CCodeEditorStyle::Initialize()
 
 void FN2CCodeEditorStyle::InitializeLanguageStyles()
 {
-    InitializeCPPStyles();
-    InitializePythonStyles();
-    InitializeJavaScriptStyles();
-    InitializeCSharpStyles();
-    InitializeSwiftStyles();
-    InitializePseudocodeStyles();
+    const UN2CSettings* Settings = GetDefault<UN2CSettings>();
+    const FN2CCodeEditorColors* Colors = Settings->GetThemeColors(EN2CCodeLanguage::Cpp, FName("Unreal Engine"));
+    if (!Colors) return;
+
+    // Register styles for each language using the same theme colors
+    InitializeStylesForLanguage(TEXT("CPP"), *Colors);
+    InitializeStylesForLanguage(TEXT("Python"), *Colors);
+    InitializeStylesForLanguage(TEXT("JavaScript"), *Colors);
+    InitializeStylesForLanguage(TEXT("CSharp"), *Colors);
+    InitializeStylesForLanguage(TEXT("Swift"), *Colors);
+    InitializeStylesForLanguage(TEXT("Pseudocode"), *Colors, true);
 }
 
-void FN2CCodeEditorStyle::InitializeCPPStyles()
+void FN2CCodeEditorStyle::InitializeStylesForLanguage(const FName& LanguageId, const FN2CCodeEditorColors& Colors, bool bIsPseudocode)
 {
-    const FTextBlockStyle BaseStyle = CreateDefaultTextStyle(TEXT("CPP"));
-    const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    
-    // Initialize styles for each theme
-    for (const auto& ThemePair : Settings->CPPThemes.Themes)
-    {
-        const FName& ThemeName = ThemePair.Key;
-        const FN2CCodeEditorColors& Colors = ThemePair.Value;
-        
-        // Set background color for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.Background"), *ThemeName.ToString()), 
-            new FSlateColorBrush(FLinearColor(Colors.Background)));
+    const FTextBlockStyle BaseStyle = CreateDefaultTextStyle(LanguageId);
+    const FName ThemeName = TEXT("Unreal Engine");
 
-        // Set text styles for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.Normal"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.Operator"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Operators)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.Keyword"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Keywords)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.String"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Strings)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.Number"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Numbers)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.Comment"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Comments)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.Preprocessor"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Preprocessor)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.Parentheses"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Parentheses)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.CurlyBraces"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.CurlyBraces)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CPP.%s.SquareBrackets"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.SquareBrackets)));
-    }
-}
+    // Set background color
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.Background"), *LanguageId.ToString(), *ThemeName.ToString()),
+        new FSlateColorBrush(FLinearColor(Colors.Background)));
 
-void FN2CCodeEditorStyle::InitializePythonStyles()
-{
-    const FTextBlockStyle BaseStyle = CreateDefaultTextStyle(TEXT("Python"));
-    const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    
-    // Initialize styles for each theme
-    for (const auto& ThemePair : Settings->PythonThemes.Themes)
-    {
-        const FName& ThemeName = ThemePair.Key;
-        const FN2CCodeEditorColors& Colors = ThemePair.Value;
-        
-        // Set background color for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.Background"), *ThemeName.ToString()), 
-            new FSlateColorBrush(FLinearColor(Colors.Background)));
+    // For Pseudocode, all syntax elements use NormalText color
+    const FLinearColor NormalColor(Colors.NormalText);
 
-        // Set text styles for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.Normal"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.Operator"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Operators)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.Keyword"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Keywords)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.String"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Strings)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.Number"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Numbers)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.Comment"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Comments)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.Preprocessor"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Preprocessor)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.Parentheses"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Parentheses)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.CurlyBraces"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.CurlyBraces)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Python.%s.SquareBrackets"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.SquareBrackets)));
-    }
-}
-
-void FN2CCodeEditorStyle::InitializeJavaScriptStyles()
-{
-    const FTextBlockStyle BaseStyle = CreateDefaultTextStyle(TEXT("JavaScript"));
-    const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    
-    // Initialize styles for each theme
-    for (const auto& ThemePair : Settings->JavaScriptThemes.Themes)
-    {
-        const FName& ThemeName = ThemePair.Key;
-        const FN2CCodeEditorColors& Colors = ThemePair.Value;
-        
-        // Set background color for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.Background"), *ThemeName.ToString()), 
-            new FSlateColorBrush(FLinearColor(Colors.Background)));
-
-        // Set text styles for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.Normal"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.Operator"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Operators)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.Keyword"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Keywords)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.String"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Strings)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.Number"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Numbers)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.Comment"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Comments)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.Preprocessor"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Preprocessor)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.Parentheses"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Parentheses)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.CurlyBraces"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.CurlyBraces)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.JavaScript.%s.SquareBrackets"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.SquareBrackets)));
-    }
-}
-
-void FN2CCodeEditorStyle::InitializeCSharpStyles()
-{
-    const FTextBlockStyle BaseStyle = CreateDefaultTextStyle(TEXT("CSharp"));
-    const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    
-    // Initialize styles for each theme
-    for (const auto& ThemePair : Settings->CSharpThemes.Themes)
-    {
-        const FName& ThemeName = ThemePair.Key;
-        const FN2CCodeEditorColors& Colors = ThemePair.Value;
-        
-        // Set background color for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.Background"), *ThemeName.ToString()), 
-            new FSlateColorBrush(FLinearColor(Colors.Background)));
-
-        // Set text styles for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.Normal"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.Operator"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Operators)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.Keyword"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Keywords)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.String"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Strings)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.Number"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Numbers)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.Comment"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Comments)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.Preprocessor"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Preprocessor)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.Parentheses"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Parentheses)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.CurlyBraces"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.CurlyBraces)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.CSharp.%s.SquareBrackets"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.SquareBrackets)));
-    }
-}
-
-void FN2CCodeEditorStyle::InitializeSwiftStyles()
-{
-    const FTextBlockStyle BaseStyle = CreateDefaultTextStyle(TEXT("Swift"));
-    const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    
-    // Initialize styles for each theme
-    for (const auto& ThemePair : Settings->SwiftThemes.Themes)
-    {
-        const FName& ThemeName = ThemePair.Key;
-        const FN2CCodeEditorColors& Colors = ThemePair.Value;
-        
-        // Set background color for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.Background"), *ThemeName.ToString()), 
-            new FSlateColorBrush(FLinearColor(Colors.Background)));
-
-        // Set text styles for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.Normal"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.Operator"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Operators)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.Keyword"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Keywords)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.String"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Strings)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.Number"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Numbers)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.Comment"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Comments)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.Preprocessor"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Preprocessor)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.Parentheses"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.Parentheses)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.CurlyBraces"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.CurlyBraces)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Swift.%s.SquareBrackets"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.SquareBrackets)));
-    }
-}
-
-void FN2CCodeEditorStyle::InitializePseudocodeStyles()
-{
-    const FTextBlockStyle BaseStyle = CreateDefaultTextStyle(TEXT("Pseudocode"));
-    const UN2CSettings* Settings = GetDefault<UN2CSettings>();
-    
-    // Initialize styles for each theme
-    for (const auto& ThemePair : Settings->PseudocodeThemes.Themes)
-    {
-        const FName& ThemeName = ThemePair.Key;
-        const FN2CCodeEditorColors& Colors = ThemePair.Value;
-        
-        // Set background color for this theme
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.Background"), *ThemeName.ToString()), 
-            new FSlateColorBrush(FLinearColor(Colors.Background)));
-
-        // For Pseudocode, we only need the Normal style since we want all text to be the same color
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.Normal"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-            
-        // Set all other styles to match Normal for consistency
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.Operator"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.Keyword"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.String"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.Number"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.Comment"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.Preprocessor"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.Parentheses"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.CurlyBraces"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-        StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.Pseudocode.%s.SquareBrackets"), *ThemeName.ToString()), 
-            FTextBlockStyle(BaseStyle).SetColorAndOpacity(FLinearColor(Colors.NormalText)));
-    }
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.Normal"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(NormalColor));
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.Operator"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(bIsPseudocode ? NormalColor : FLinearColor(Colors.Operators)));
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.Keyword"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(bIsPseudocode ? NormalColor : FLinearColor(Colors.Keywords)));
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.String"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(bIsPseudocode ? NormalColor : FLinearColor(Colors.Strings)));
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.Number"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(bIsPseudocode ? NormalColor : FLinearColor(Colors.Numbers)));
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.Comment"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(bIsPseudocode ? NormalColor : FLinearColor(Colors.Comments)));
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.Preprocessor"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(bIsPseudocode ? NormalColor : FLinearColor(Colors.Preprocessor)));
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.Parentheses"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(bIsPseudocode ? NormalColor : FLinearColor(Colors.Parentheses)));
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.CurlyBraces"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(bIsPseudocode ? NormalColor : FLinearColor(Colors.CurlyBraces)));
+    StyleSet->Set(*FString::Printf(TEXT("N2CCodeEditor.%s.%s.SquareBrackets"), *LanguageId.ToString(), *ThemeName.ToString()),
+        FTextBlockStyle(BaseStyle).SetColorAndOpacity(bIsPseudocode ? NormalColor : FLinearColor(Colors.SquareBrackets)));
 }
 
 FTextBlockStyle FN2CCodeEditorStyle::CreateDefaultTextStyle(const FName& TypeName)

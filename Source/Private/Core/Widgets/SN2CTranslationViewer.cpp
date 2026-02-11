@@ -112,7 +112,6 @@ void SN2CTranslationViewer::Construct(const FArguments& InArgs)
 				[
 					SAssignNew(CodeEditor, SN2CCodeEditor)
 					.Language(EN2CCodeLanguage::Cpp)
-					.ThemeName(TEXT("Unreal Engine"))
 				]
 			]
 

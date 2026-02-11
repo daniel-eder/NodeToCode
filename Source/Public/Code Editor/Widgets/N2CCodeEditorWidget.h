@@ -91,24 +91,8 @@ public:
     /** Set whether to enable word wrap */
     void SetWordWrap(bool bEnable);
 
-    /** Set the current theme */
-    UFUNCTION(BlueprintCallable, Category = "Code Editor|Appearance")
-    void SetTheme(const FName& NewTheme);
-
     /** Set the tab size in spaces */
     void SetTabSize(int32 NewSize);
-
-    /** Get available themes for the current language */
-    UFUNCTION(BlueprintCallable, Category = "Code Editor|Themes")
-    TArray<FName> GetAvailableThemes() const;
-
-    /** Get available themes for the current language */
-    UFUNCTION(BlueprintCallable, Category = "Code Editor|Themes")
-    FN2CCodeEditorColors GetThemeFromName(const FName Name) const;
-    
-    /** Get the current theme name */
-    UFUNCTION(BlueprintPure, Category = "Code Editor|Themes")
-    FName GetCurrentTheme() const;
 
     /** Release Slate resources */
     virtual void ReleaseSlateResources(bool bReleaseChildren) override;
@@ -124,12 +108,6 @@ protected:
     /** The programming language for syntax highlighting */
     UPROPERTY(EditAnywhere, Category = "Code Editor", meta=(DisplayName="Language", ToolTip="Select the programming language for syntax highlighting"))
     EN2CCodeLanguage Language;
-
-    /** The theme name to use for syntax highlighting */
-    UPROPERTY(EditAnywhere, Category = "Code Editor|Appearance", 
-        meta = (DisplayName = "Theme", 
-               ToolTip = "The color theme to use for syntax highlighting"))
-    FName ThemeName;
 
     /** Font size for the editor text */
     UPROPERTY(EditAnywhere, Category = "Code Editor|Appearance", meta=(ClampMin="8", ClampMax="72"))

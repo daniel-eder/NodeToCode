@@ -18,16 +18,12 @@ public:
     SLATE_BEGIN_ARGS(SN2CCodeEditor)
         : _Text()
         , _Language(EN2CCodeLanguage::Cpp)
-        , _ThemeName(TEXT("Unreal Engine"))
     {}
         /** Initial text content */
         SLATE_ATTRIBUTE(FText, Text)
 
         /** Programming language for syntax highlighting */
         SLATE_ARGUMENT(EN2CCodeLanguage, Language)
-
-        /** Theme name for syntax highlighting */
-        SLATE_ARGUMENT(FName, ThemeName)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs);
@@ -74,9 +70,6 @@ public:
     /** Set tab size */
     void SetTabSize(int32 NewSize);
 
-    /** Set the current theme */
-    void SetTheme(const FName& NewTheme);
-
 private:
     /** Horizontal scrollbar widget */
     TSharedPtr<SScrollBar> HorizontalScrollBar;
@@ -93,8 +86,8 @@ private:
     /** Current language */
     EN2CCodeLanguage CurrentLanguage;
 
-    /** Current theme name */
-    FName CurrentTheme;
+    /** Theme name (single default) */
+    static const FName CurrentTheme;
 
     /** Current tab size */
     int32 TabSize;
