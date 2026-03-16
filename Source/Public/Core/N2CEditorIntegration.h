@@ -159,20 +159,41 @@ private:
     /** Map of wrapped tabs to their wrapper widgets (legacy, kept for compatibility) */
     TMap<TWeakPtr<SDockTab>, TSharedPtr<SN2CGraphEditorWrapper>> WrappedTabs;
 
-    /** Set of graph GUIDs that have had overlays injected */
-    TSet<FGuid> InjectedGraphOverlays;
+    /** Map of graph GUIDs to their overlay widgets (weak ptrs detect destruction on graph switch) */
+    TMap<FGuid, TWeakPtr<SN2CGraphOverlay>> InjectedGraphOverlays;
 
-    /** Timer handle for deferred graph tab wrapping */
-    FTimerHandle GraphTabWrapTimerHandle;
+    /** Timer handle for initial graph tab wrapping on editor open (with retry) */
+    FTimerHandle InitialWrapTimerHandle;
 
-    /** Delegate handle for tab change subscription */
-    FDelegateHandle OnActiveTabChangedHandle;
+    /** Timer handle for tab-change-triggered graph tab wrapping */
+    FTimerHandle TabChangeWrapTimerHandle;
+
+    /** Timer handle for periodic overlay health check (catches internal graph switches) */
+    FTimerHandle OverlayPollingTimerHandle;
+
+    /** Retry counter for initial wrap attempts (for editors that open without a focused graph) */
+    int32 InitialWrapRetryCount = 0;
+
+    /** Max retries before giving up on initial wrap */
+    static constexpr int32 MaxInitialWrapRetries = 20;
+
+    /** Interval between initial wrap retry attempts in seconds */
+    static constexpr float InitialWrapRetryInterval = 0.5f;
+
+    /** Delegate handle for tab foregrounded subscription */
+    FDelegateHandle OnTabForegroundedHandle;
 
     /** Global flag tracking if any translation is in progress */
     bool bIsAnyTranslationInProgress = false;
 
-    /** Handle tab activation to wrap new graph tabs */
-    void OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated);
+    /** Handle tab foregrounded to wrap new graph tabs (more reliable than OnActiveTabChanged) */
+    void OnTabForegrounded(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyForegrounded);
+
+    /**
+     * Find the SOverlay inside an SGraphEditor widget using the known widget tree structure.
+     * Uses targeted traversal first (SGraphEditorImpl → SOverlay), with recursive fallback.
+     */
+    TSharedPtr<SOverlay> FindGraphEditorOverlay(TSharedPtr<SWidget> GraphEditorWidget);
 
     /** Execute collect nodes for a specific editor */
     void TranslateBlueprintNodesForEditor(TWeakPtr<FBlueprintEditor> InEditor);

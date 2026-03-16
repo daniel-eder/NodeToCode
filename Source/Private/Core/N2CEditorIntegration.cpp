@@ -250,28 +250,115 @@ void FN2CEditorIntegration::Initialize()
         }
     }
 
-    // Subscribe to tab changes to wrap new graph tabs as they're activated
-    OnActiveTabChangedHandle = FGlobalTabmanager::Get()->OnActiveTabChanged_Subscribe(
-        FOnActiveTabChanged::FDelegate::CreateRaw(this, &FN2CEditorIntegration::OnActiveTabChanged)
+    // Subscribe to tab foregrounded events - more reliable than OnActiveTabChanged.
+    // OnTabForegrounded fires for both cross-editor tab switches AND internal graph switches
+    // (e.g., EventGraph -> Function) within the same Blueprint editor.
+    OnTabForegroundedHandle = FGlobalTabmanager::Get()->OnTabForegrounded_Subscribe(
+        FOnActiveTabChanged::FDelegate::CreateRaw(this, &FN2CEditorIntegration::OnTabForegrounded)
     );
-    FN2CLogger::Get().Log(TEXT("N2C Editor Integration: Subscribed to OnActiveTabChanged"), EN2CLogSeverity::Info);
+    FN2CLogger::Get().Log(TEXT("N2C Editor Integration: Subscribed to OnTabForegrounded"), EN2CLogSeverity::Info);
+
+    // Start a periodic overlay health check as a safety net.
+    // The primary hook is OnTabForegrounded which should catch most cases.
+    // This timer is a backup to re-inject overlays destroyed by graph tab rebuilds
+    // or edge cases the primary hook might miss.
+    if (GEditor)
+    {
+        GEditor->GetTimerManager()->SetTimer(
+            OverlayPollingTimerHandle,
+            FTimerDelegate::CreateLambda([this]()
+            {
+                if (!GEditor)
+                {
+                    return;
+                }
+
+                UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+                if (!AssetEditorSubsystem)
+                {
+                    return;
+                }
+
+                TArray<UObject*> EditedAssets = AssetEditorSubsystem->GetAllEditedAssets();
+
+                for (UObject* Asset : EditedAssets)
+                {
+                    UBlueprint* Blueprint = Cast<UBlueprint>(Asset);
+                    if (!Blueprint)
+                    {
+                        continue;
+                    }
+
+                    IAssetEditorInstance* EditorInstance = AssetEditorSubsystem->FindEditorForAsset(Blueprint, false);
+                    if (!EditorInstance)
+                    {
+                        continue;
+                    }
+
+                    FBlueprintEditor* RawEditor = static_cast<FBlueprintEditor*>(EditorInstance);
+
+                    UEdGraph* FocusedGraph = RawEditor->GetFocusedGraph();
+                    if (!FocusedGraph)
+                    {
+                        continue;
+                    }
+
+                    // Check if overlay still exists (weak pointer detects destroyed widgets)
+                    if (TWeakPtr<SN2CGraphOverlay>* ExistingOverlay = InjectedGraphOverlays.Find(FocusedGraph->GraphGuid))
+                    {
+                        if (ExistingOverlay->IsValid())
+                        {
+                            continue; // Overlay still alive
+                        }
+                        InjectedGraphOverlays.Remove(FocusedGraph->GraphGuid);
+                    }
+
+                    // Found an editor with an un-overlaid focused graph - wrap it
+                    // Log this since it means the primary OnTabForegrounded hook missed it
+                    FN2CLogger::Get().Log(
+                        FString::Printf(TEXT("Overlay polling: re-injecting overlay for graph '%s' (primary hook missed)"), *FocusedGraph->GetName()),
+                        EN2CLogSeverity::Warning
+                    );
+                    TSharedRef<FBlueprintEditor> EditorShared = StaticCastSharedRef<FBlueprintEditor>(RawEditor->AsShared());
+                    TWeakPtr<FBlueprintEditor> WeakEditor(EditorShared);
+                    StoreActiveBlueprintEditor(EditorShared);
+                    TryWrapFocusedGraphTab(WeakEditor);
+                }
+            }),
+            2.0f, // Check every 2 seconds (safety net - primary hook is OnTabForegrounded)
+            true   // Loop
+        );
+    }
 
     FN2CLogger::Get().Log(TEXT("N2C Editor Integration initialized"), EN2CLogSeverity::Info);
 }
 
 void FN2CEditorIntegration::Shutdown()
 {
-    // Clear the graph tab wrap timer
-    if (GEditor && GraphTabWrapTimerHandle.IsValid())
+    // Clear both timer handles
+    if (GEditor)
     {
-        GEditor->GetTimerManager()->ClearTimer(GraphTabWrapTimerHandle);
+        if (InitialWrapTimerHandle.IsValid())
+        {
+            GEditor->GetTimerManager()->ClearTimer(InitialWrapTimerHandle);
+        }
+        if (TabChangeWrapTimerHandle.IsValid())
+        {
+            GEditor->GetTimerManager()->ClearTimer(TabChangeWrapTimerHandle);
+        }
     }
 
-    // Unsubscribe from tab changes
-    if (OnActiveTabChangedHandle.IsValid())
+    // Unsubscribe from global tab foregrounded events
+    if (OnTabForegroundedHandle.IsValid())
     {
-        FGlobalTabmanager::Get()->OnActiveTabChanged_Unsubscribe(OnActiveTabChangedHandle);
-        OnActiveTabChangedHandle.Reset();
+        FGlobalTabmanager::Get()->OnTabForegrounded_Unsubscribe(OnTabForegroundedHandle);
+        OnTabForegroundedHandle.Reset();
+    }
+
+    // Clear the overlay polling timer
+    if (GEditor && OverlayPollingTimerHandle.IsValid())
+    {
+        GEditor->GetTimerManager()->ClearTimer(OverlayPollingTimerHandle);
     }
 
     // Unregister tab spawner
@@ -334,31 +421,75 @@ void FN2CEditorIntegration::HandleAssetEditorOpened(UObject* Asset, IAssetEditor
 
         TWeakPtr<FBlueprintEditor> WeakEditor(BlueprintEditorShared);
 
-        // Schedule deferred wrapping of graph tabs
-        // We need to wait for the graph tabs to be created
+        // Schedule deferred wrapping of graph tabs with retry logic.
+        // Widget Blueprints may open in Designer mode where GetFocusedGraph() returns nullptr.
+        // The looping timer retries until the graph becomes available or max retries is reached.
         if (GEditor)
         {
-            // Clear any existing timer
-            if (GraphTabWrapTimerHandle.IsValid())
+            // Clear any existing initial wrap timer (does NOT cancel the tab-change timer)
+            if (InitialWrapTimerHandle.IsValid())
             {
-                GEditor->GetTimerManager()->ClearTimer(GraphTabWrapTimerHandle);
+                GEditor->GetTimerManager()->ClearTimer(InitialWrapTimerHandle);
             }
 
-            // Set a timer to wrap the graph tab after the editor is fully initialized
+            // Reset retry counter
+            InitialWrapRetryCount = 0;
+
             GEditor->GetTimerManager()->SetTimer(
-                GraphTabWrapTimerHandle,
+                InitialWrapTimerHandle,
                 FTimerDelegate::CreateLambda([this, WeakEditor]()
                 {
-                    // Clean up stale wrappers first
-                    CleanupStaleWrappers();
+                    // Clean up stale wrappers on first attempt
+                    if (InitialWrapRetryCount == 0)
+                    {
+                        CleanupStaleWrappers();
+                    }
 
-                    // Try to wrap the focused graph tab
-                    TryWrapFocusedGraphTab(WeakEditor);
+                    TSharedPtr<FBlueprintEditor> Editor = WeakEditor.Pin();
+                    if (!Editor.IsValid())
+                    {
+                        // Editor was closed, stop retrying
+                        if (GEditor && InitialWrapTimerHandle.IsValid())
+                        {
+                            GEditor->GetTimerManager()->ClearTimer(InitialWrapTimerHandle);
+                        }
+                        return;
+                    }
+
+                    // Check if a focused graph is available
+                    UEdGraph* FocusedGraph = Editor->GetFocusedGraph();
+                    if (FocusedGraph)
+                    {
+                        // Graph is available - wrap it and stop the timer
+                        TryWrapFocusedGraphTab(WeakEditor);
+                        if (GEditor && InitialWrapTimerHandle.IsValid())
+                        {
+                            GEditor->GetTimerManager()->ClearTimer(InitialWrapTimerHandle);
+                        }
+                        return;
+                    }
+
+                    // No focused graph yet (e.g., Widget BP in Designer mode) - retry
+                    InitialWrapRetryCount++;
+                    if (InitialWrapRetryCount >= MaxInitialWrapRetries)
+                    {
+                        // Give up on initial wrap. The overlay will be injected when the
+                        // user switches to Graph mode via OnTabForegrounded or the polling timer.
+                        FN2CLogger::Get().Log(
+                            FString::Printf(TEXT("Initial overlay wrap: stopped after %d retries (editor likely in non-graph mode)"), MaxInitialWrapRetries),
+                            EN2CLogSeverity::Warning
+                        );
+                        if (GEditor && InitialWrapTimerHandle.IsValid())
+                        {
+                            GEditor->GetTimerManager()->ClearTimer(InitialWrapTimerHandle);
+                        }
+                    }
                 }),
-                0.5f, // Wait 500ms for the UI to be fully set up
-                false // Don't loop
+                InitialWrapRetryInterval, // 500ms between attempts
+                true // Loop until cleared
             );
         }
+
     }
 }
 
@@ -580,76 +711,66 @@ void FN2CEditorIntegration::TranslateFocusedBlueprintAsync(
     LLMModule->ProcessN2CJsonWithOverrides(JsonInput, RequestConfig, TargetLanguage, OnComplete);
 }
 
-void FN2CEditorIntegration::WrapGraphTabIfNeeded(TSharedPtr<SDockTab> Tab, UEdGraph* Graph, TWeakPtr<FBlueprintEditor> Editor)
+TSharedPtr<SOverlay> FN2CEditorIntegration::FindGraphEditorOverlay(TSharedPtr<SWidget> GraphEditorWidget)
 {
-    //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: ENTER"), EN2CLogSeverity::Warning);
-
-    if (!Tab.IsValid())
+    if (!GraphEditorWidget.IsValid())
     {
-        //::Get().Log(TEXT("WrapGraphTabIfNeeded: Tab is INVALID - returning early"), EN2CLogSeverity::Warning);
-        return;
+        return nullptr;
     }
 
-    if (!Graph)
+    // Targeted traversal: SGraphEditor's known structure is SGraphEditorImpl → SOverlay
+    // (confirmed in SGraphEditorImpl.cpp where SOverlay is a direct child)
+    // Try shallow search first (2 levels deep) for speed and reliability
+    FChildren* Children = GraphEditorWidget->GetChildren();
+    if (Children)
     {
-        //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Graph is NULL - returning early"), EN2CLogSeverity::Warning);
-        return;
+        for (int32 i = 0; i < Children->Num(); i++)
+        {
+            TSharedRef<SWidget> Child = Children->GetChildAt(i);
+
+            // Check direct child (SOverlay may be immediate child of SGraphEditorImpl)
+            if (Child->GetTypeAsString().Contains(TEXT("SOverlay")))
+            {
+                return StaticCastSharedRef<SOverlay>(Child);
+            }
+
+            // One level deeper (SBox → SOverlay or similar wrapper)
+            FChildren* GrandChildren = Child->GetChildren();
+            if (GrandChildren)
+            {
+                for (int32 j = 0; j < GrandChildren->Num(); j++)
+                {
+                    TSharedRef<SWidget> GrandChild = GrandChildren->GetChildAt(j);
+                    if (GrandChild->GetTypeAsString().Contains(TEXT("SOverlay")))
+                    {
+                        return StaticCastSharedRef<SOverlay>(GrandChild);
+                    }
+                }
+            }
+        }
     }
 
-    /*FN2CLogger::Get().Log(FString::Printf(TEXT("WrapGraphTabIfNeeded: Tab valid, Graph=%s (GUID=%s)"),
-        *Graph->GetName(), *Graph->GraphGuid.ToString()), EN2CLogSeverity::Warning);*/
-
-    // Check if this graph already has an overlay injected using Graph GUID
-    if (InjectedGraphOverlays.Contains(Graph->GraphGuid))
+    // Fallback: recursive search up to depth 10 (handles unexpected widget tree changes)
+    TFunction<TSharedPtr<SOverlay>(TSharedPtr<SWidget>, int32)> FindOverlayRecursive =
+        [&FindOverlayRecursive](TSharedPtr<SWidget> Widget, int32 Depth) -> TSharedPtr<SOverlay>
     {
-        //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Graph already has overlay injected - returning"), EN2CLogSeverity::Warning);
-        return;
-    }
-
-    // Get the tab content (should be SGraphEditor)
-    //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: About to call Tab->GetContent()"), EN2CLogSeverity::Warning);
-    TSharedRef<SWidget> TabContent = Tab->GetContent();
-    //FN2CLogger::Get().Log(FString::Printf(TEXT("WrapGraphTabIfNeeded: Got content, type=%s"), *TabContent->GetTypeAsString()), EN2CLogSeverity::Warning);
-
-    // Check if this is an SGraphEditor
-    if (!TabContent->GetTypeAsString().Contains(TEXT("SGraphEditor")))
-    {
-        //FN2CLogger::Get().Log(FString::Printf(TEXT("WrapGraphTabIfNeeded: Content is not SGraphEditor (type=%s) - returning"), *TabContent->GetTypeAsString()), EN2CLogSeverity::Warning);
-        return;
-    }
-
-    // Find the SOverlay inside the SGraphEditor
-    // SGraphEditor's structure: SGraphEditor -> SBox -> SOverlay (based on SGraphEditorImpl.cpp)
-    // We need to traverse the widget tree to find it
-    //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Looking for SOverlay in SGraphEditor"), EN2CLogSeverity::Warning);
-
-    TSharedPtr<SOverlay> GraphOverlay;
-
-    // Recursive lambda to find SOverlay in widget tree
-    TFunction<TSharedPtr<SOverlay>(TSharedPtr<SWidget>, int32)> FindOverlay = [&FindOverlay](TSharedPtr<SWidget> Widget, int32 Depth) -> TSharedPtr<SOverlay>
-    {
-        if (!Widget.IsValid() || Depth > 10) // Limit depth to prevent infinite recursion
+        if (!Widget.IsValid() || Depth > 10)
         {
             return nullptr;
         }
 
-        //FN2CLogger::Get().Log(FString::Printf(TEXT("WrapGraphTabIfNeeded: [Depth %d] Checking widget type=%s"), Depth, *Widget->GetTypeAsString()), EN2CLogSeverity::Warning);
-
-        // Check if this widget is an SOverlay
         if (Widget->GetTypeAsString().Contains(TEXT("SOverlay")))
         {
-            FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Found SOverlay!"), EN2CLogSeverity::Warning);
             return StaticCastSharedPtr<SOverlay>(Widget);
         }
 
-        // Search children
-        FChildren* Children = Widget->GetChildren();
-        if (Children)
+        FChildren* ChildWidgets = Widget->GetChildren();
+        if (ChildWidgets)
         {
-            for (int32 i = 0; i < Children->Num(); i++)
+            for (int32 i = 0; i < ChildWidgets->Num(); i++)
             {
-                TSharedRef<SWidget> Child = Children->GetChildAt(i);
-                TSharedPtr<SOverlay> FoundOverlay = FindOverlay(Child, Depth + 1);
+                TSharedRef<SWidget> Child = ChildWidgets->GetChildAt(i);
+                TSharedPtr<SOverlay> FoundOverlay = FindOverlayRecursive(Child, Depth + 1);
                 if (FoundOverlay.IsValid())
                 {
                     return FoundOverlay;
@@ -660,30 +781,73 @@ void FN2CEditorIntegration::WrapGraphTabIfNeeded(TSharedPtr<SDockTab> Tab, UEdGr
         return nullptr;
     };
 
-    GraphOverlay = FindOverlay(TabContent, 0);
+    FN2CLogger::Get().Log(TEXT("FindGraphEditorOverlay: targeted search failed, falling back to recursive search"), EN2CLogSeverity::Warning);
+    return FindOverlayRecursive(GraphEditorWidget, 0);
+}
 
-    if (!GraphOverlay.IsValid())
+void FN2CEditorIntegration::WrapGraphTabIfNeeded(TSharedPtr<SDockTab> Tab, UEdGraph* Graph, TWeakPtr<FBlueprintEditor> Editor)
+{
+    if (!Tab.IsValid())
     {
-        //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Could not find SOverlay in SGraphEditor - returning"), EN2CLogSeverity::Warning);
+        FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Tab is invalid"), EN2CLogSeverity::Warning);
         return;
     }
 
-    // Check if editor is valid
-    //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Checking Editor validity"), EN2CLogSeverity::Warning);
+    if (!Graph)
+    {
+        FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Graph is null"), EN2CLogSeverity::Warning);
+        return;
+    }
+
+    // Check if this graph already has a live overlay (weak pointer validates the widget still exists)
+    if (TWeakPtr<SN2CGraphOverlay>* ExistingOverlay = InjectedGraphOverlays.Find(Graph->GraphGuid))
+    {
+        if (ExistingOverlay->IsValid())
+        {
+            return; // Overlay still exists
+        }
+        // Overlay was destroyed (e.g., graph tab rebuilt on switch) - remove stale entry and re-inject
+        InjectedGraphOverlays.Remove(Graph->GraphGuid);
+    }
+
+    // Get the tab content (should be SGraphEditor)
+    TSharedRef<SWidget> TabContent = Tab->GetContent();
+
+    // Check if this is an SGraphEditor
+    if (!TabContent->GetTypeAsString().Contains(TEXT("SGraphEditor")))
+    {
+        FN2CLogger::Get().Log(
+            FString::Printf(TEXT("WrapGraphTabIfNeeded: Tab content is not SGraphEditor (type=%s)"), *TabContent->GetTypeAsString()),
+            EN2CLogSeverity::Warning
+        );
+        return;
+    }
+
+    // Find the SOverlay inside the SGraphEditor using targeted + fallback search
+    TSharedPtr<SOverlay> GraphOverlay = FindGraphEditorOverlay(TabContent);
+
+    if (!GraphOverlay.IsValid())
+    {
+        FN2CLogger::Get().Log(
+            FString::Printf(TEXT("WrapGraphTabIfNeeded: Could not find SOverlay in SGraphEditor for graph '%s'"), *Graph->GetName()),
+            EN2CLogSeverity::Warning
+        );
+        return;
+    }
+
+    // Validate editor
     if (!Editor.IsValid())
     {
-        //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Editor weak ptr is INVALID - returning"), EN2CLogSeverity::Warning);
+        FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Editor weak ptr is invalid"), EN2CLogSeverity::Warning);
         return;
     }
 
     TSharedPtr<FBlueprintEditor> EditorPin = Editor.Pin();
     if (!EditorPin.IsValid())
     {
-        //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Editor.Pin() returned INVALID ptr - returning"), EN2CLogSeverity::Warning);
+        FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Editor.Pin() returned invalid ptr"), EN2CLogSeverity::Warning);
         return;
     }
-
-    //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Editor is valid"), EN2CLogSeverity::Warning);
 
     // Get graph info for the overlay
     FGuid GraphGuid = Graph->GraphGuid;
@@ -711,12 +875,9 @@ void FN2CEditorIntegration::WrapGraphTabIfNeeded(TSharedPtr<SDockTab> Tab, UEdGr
         }
     }
 
-    // Create our overlay widget
-    //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Creating SN2CGraphOverlay"), EN2CLogSeverity::Warning);
+    // Create and inject our overlay widget
     TSharedPtr<SN2CGraphOverlay> OverlayWidget;
 
-    // Add our overlay as a new slot in the SGraphEditor's overlay
-    //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Adding overlay slot to SOverlay"), EN2CLogSeverity::Warning);
     GraphOverlay->AddSlot()
         .HAlign(HAlign_Left)
         .VAlign(VAlign_Bottom)
@@ -729,73 +890,97 @@ void FN2CEditorIntegration::WrapGraphTabIfNeeded(TSharedPtr<SDockTab> Tab, UEdGr
             .BlueprintEditor(Editor)
         ];
 
-    //FN2CLogger::Get().Log(TEXT("WrapGraphTabIfNeeded: Overlay slot added successfully"), EN2CLogSeverity::Warning);
+    // Track this graph's overlay with a weak pointer to detect destruction
+    InjectedGraphOverlays.Add(GraphGuid, OverlayWidget);
 
-    // Track this graph as having an overlay injected
-    InjectedGraphOverlays.Add(GraphGuid);
-
-    /*FN2CLogger::Get().Log(
-        FString::Printf(TEXT("WrapGraphTabIfNeeded: SUCCESS - Added overlay to graph: %s (GUID=%s)"),
-            *Graph->GetName(), *GraphGuid.ToString()),
-        EN2CLogSeverity::Warning
-    );*/
+    FN2CLogger::Get().Log(
+        FString::Printf(TEXT("WrapGraphTabIfNeeded: Overlay injected for graph '%s'"), *GraphName),
+        EN2CLogSeverity::Info
+    );
 }
 
 void FN2CEditorIntegration::TryWrapFocusedGraphTab(TWeakPtr<FBlueprintEditor> WeakEditor)
 {
-    //FN2CLogger::Get().Log(TEXT("TryWrapFocusedGraphTab: ENTER"), EN2CLogSeverity::Warning);
-
     TSharedPtr<FBlueprintEditor> Editor = WeakEditor.Pin();
     if (!Editor.IsValid())
     {
-        //FN2CLogger::Get().Log(TEXT("TryWrapFocusedGraphTab: Editor is INVALID - returning"), EN2CLogSeverity::Warning);
         return;
     }
 
-    //FN2CLogger::Get().Log(TEXT("TryWrapFocusedGraphTab: Editor is valid"), EN2CLogSeverity::Warning);
-
     // Get the focused graph
-    //FN2CLogger::Get().Log(TEXT("TryWrapFocusedGraphTab: About to call GetFocusedGraph()"), EN2CLogSeverity::Warning);
     UEdGraph* FocusedGraph = Editor->GetFocusedGraph();
     if (!FocusedGraph)
     {
-        //FN2CLogger::Get().Log(TEXT("TryWrapFocusedGraphTab: No focused graph to wrap - returning"), EN2CLogSeverity::Warning);
         return;
     }
 
-    //FN2CLogger::Get().Log(FString::Printf(TEXT("TryWrapFocusedGraphTab: FocusedGraph=%s"), *FocusedGraph->GetName()), EN2CLogSeverity::Warning);
-
-    // Use FBlueprintEditor's FindOpenTabsContainingDocument to find the tab for this graph
-    //FN2CLogger::Get().Log(TEXT("TryWrapFocusedGraphTab: About to call FindOpenTabsContainingDocument()"), EN2CLogSeverity::Warning);
+    // Find the tab containing this graph
     TArray<TSharedPtr<SDockTab>> TabsWithGraph;
-    if (Editor->FindOpenTabsContainingDocument(FocusedGraph, TabsWithGraph) && TabsWithGraph.Num() > 0)
+    Editor->FindOpenTabsContainingDocument(FocusedGraph, TabsWithGraph);
+
+    // Fallback: custom event graphs in Widget Blueprints may be displayed in a tab
+    // registered under the EventGraph (they share the tab). Search all Blueprint graphs
+    // to find any graph tab that might be showing our focused graph.
+    if (TabsWithGraph.Num() == 0)
     {
-        FN2CLogger::Get().Log(FString::Printf(TEXT("TryWrapFocusedGraphTab: Found %d tabs with graph"), TabsWithGraph.Num()), EN2CLogSeverity::Warning);
-        // Wrap the first (and usually only) tab containing this graph
-        for (int32 i = 0; i < TabsWithGraph.Num(); i++)
+        UBlueprint* Blueprint = nullptr;
+        if (UObject* Outer = FocusedGraph->GetOuter())
         {
-            const TSharedPtr<SDockTab>& GraphTab = TabsWithGraph[i];
-            //FN2CLogger::Get().Log(FString::Printf(TEXT("TryWrapFocusedGraphTab: Processing tab %d"), i), EN2CLogSeverity::Warning);
-            if (GraphTab.IsValid())
+            Blueprint = Cast<UBlueprint>(Outer);
+            if (!Blueprint)
             {
-                //FN2CLogger::Get().Log(TEXT("TryWrapFocusedGraphTab: Tab is valid, calling WrapGraphTabIfNeeded"), EN2CLogSeverity::Warning);
-                WrapGraphTabIfNeeded(GraphTab, FocusedGraph, WeakEditor);
-            }
-            else
-            {
-                //FN2CLogger::Get().Log(TEXT("TryWrapFocusedGraphTab: Tab is INVALID"), EN2CLogSeverity::Warning);
+                // Try one more level up (for nested graphs)
+                Blueprint = Cast<UBlueprint>(Outer->GetOuter());
             }
         }
-    }
-    else
-    {
-        /*FN2CLogger::Get().Log(
-            FString::Printf(TEXT("TryWrapFocusedGraphTab: Could not find tab for graph: %s"), *FocusedGraph->GetName()),
-            EN2CLogSeverity::Warning
-        );*/
+
+        if (Blueprint)
+        {
+            // Try UbergraphPages first (EventGraph and custom event graphs)
+            for (UEdGraph* Graph : Blueprint->UbergraphPages)
+            {
+                if (Graph && Graph != FocusedGraph)
+                {
+                    if (Editor->FindOpenTabsContainingDocument(Graph, TabsWithGraph) && TabsWithGraph.Num() > 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            // Then try FunctionGraphs
+            if (TabsWithGraph.Num() == 0)
+            {
+                for (UEdGraph* Graph : Blueprint->FunctionGraphs)
+                {
+                    if (Graph && Graph != FocusedGraph)
+                    {
+                        if (Editor->FindOpenTabsContainingDocument(Graph, TabsWithGraph) && TabsWithGraph.Num() > 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (TabsWithGraph.Num() == 0)
+        {
+            FN2CLogger::Get().Log(
+                FString::Printf(TEXT("TryWrapFocusedGraphTab: No tabs found for graph '%s'"), *FocusedGraph->GetName()),
+                EN2CLogSeverity::Warning
+            );
+        }
     }
 
-    //FN2CLogger::Get().Log(TEXT("TryWrapFocusedGraphTab: EXIT"), EN2CLogSeverity::Warning);
+    // Wrap any found tabs
+    for (const TSharedPtr<SDockTab>& GraphTab : TabsWithGraph)
+    {
+        if (GraphTab.IsValid())
+        {
+            WrapGraphTabIfNeeded(GraphTab, FocusedGraph, WeakEditor);
+        }
+    }
 }
 
 void FN2CEditorIntegration::CleanupStaleWrappers()
@@ -823,106 +1008,115 @@ void FN2CEditorIntegration::CleanupStaleWrappers()
             EN2CLogSeverity::Debug
         );
     }
-}
 
-void FN2CEditorIntegration::OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated)
-{
-    //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: ENTER"), EN2CLogSeverity::Warning);
-
-    if (!NewlyActivated.IsValid())
+    // Clean up stale overlay tracking (overlays destroyed by graph tab rebuilds)
+    TArray<FGuid> StaleOverlayKeys;
+    for (auto& Pair : InjectedGraphOverlays)
     {
-        //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: NewlyActivated is INVALID - returning"), EN2CLogSeverity::Warning);
-        return;
-    }
-
-    /*FN2CLogger::Get().Log(FString::Printf(TEXT("OnActiveTabChanged: NewlyActivated tab label=%s"),
-        *NewlyActivated->GetTabLabel().ToString()), EN2CLogSeverity::Warning);*/
-
-    // Check if we have an active Blueprint editor
-    //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: About to call GetActiveBlueprintEditor()"), EN2CLogSeverity::Warning);
-    TSharedPtr<FBlueprintEditor> Editor = GetActiveBlueprintEditor();
-    if (!Editor.IsValid())
-    {
-        //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: No active Blueprint editor - returning"), EN2CLogSeverity::Warning);
-        return;
-    }
-
-    //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: Have valid Blueprint editor"), EN2CLogSeverity::Warning);
-
-    // Get the focused graph - this tells us which graph the user is viewing
-    //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: About to call GetFocusedGraph()"), EN2CLogSeverity::Warning);
-    UEdGraph* FocusedGraph = Editor->GetFocusedGraph();
-    if (!FocusedGraph)
-    {
-        //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: No focused graph - returning"), EN2CLogSeverity::Warning);
-        return;
-    }
-
-    /*FN2CLogger::Get().Log(FString::Printf(TEXT("OnActiveTabChanged: FocusedGraph=%s (GUID=%s)"),
-        *FocusedGraph->GetName(), *FocusedGraph->GraphGuid.ToString()), EN2CLogSeverity::Warning);*/
-
-    // Check if this graph already has an overlay
-    if (InjectedGraphOverlays.Contains(FocusedGraph->GraphGuid))
-    {
-        //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: Graph already has overlay - returning"), EN2CLogSeverity::Warning);
-        return;
-    }
-
-    // Find the tab containing this graph and inject overlay
-    //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: About to call FindOpenTabsContainingDocument()"), EN2CLogSeverity::Warning);
-    TArray<TSharedPtr<SDockTab>> TabsWithGraph;
-    if (Editor->FindOpenTabsContainingDocument(FocusedGraph, TabsWithGraph) && TabsWithGraph.Num() > 0)
-    {
-        //FN2CLogger::Get().Log(FString::Printf(TEXT("OnActiveTabChanged: Found %d tabs containing the graph"), TabsWithGraph.Num()), EN2CLogSeverity::Warning);
-
-        // Use the first valid tab
-        TSharedPtr<SDockTab> GraphTab = TabsWithGraph[0];
-        if (GraphTab.IsValid())
+        if (!Pair.Value.IsValid())
         {
-            //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: Deferring overlay injection"), EN2CLogSeverity::Warning);
-
-            // Defer the injection to avoid any issues during tab switching
-            TWeakPtr<FBlueprintEditor> WeakEditor = Editor;
-            TWeakObjectPtr<UEdGraph> WeakGraph = FocusedGraph;
-            TWeakPtr<SDockTab> WeakGraphTab = GraphTab;
-
-            if (GEditor)
-            {
-                // Clear any existing timer first
-                if (GraphTabWrapTimerHandle.IsValid())
-                {
-                    GEditor->GetTimerManager()->ClearTimer(GraphTabWrapTimerHandle);
-                }
-
-                GEditor->GetTimerManager()->SetTimer(
-                    GraphTabWrapTimerHandle,
-                    FTimerDelegate::CreateLambda([this, WeakEditor, WeakGraph, WeakGraphTab]()
-                    {
-                        //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: Deferred injection timer fired"), EN2CLogSeverity::Warning);
-                        TSharedPtr<SDockTab> PinnedTab = WeakGraphTab.Pin();
-                        UEdGraph* PinnedGraph = WeakGraph.Get();
-
-                        if (PinnedTab.IsValid() && PinnedGraph)
-                        {
-                            WrapGraphTabIfNeeded(PinnedTab, PinnedGraph, WeakEditor);
-                        }
-                        else
-                        {
-                            //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: Deferred injection - tab or graph became invalid"), EN2CLogSeverity::Warning);
-                        }
-                    }),
-                    0.05f, // 50ms delay - short delay to let UI settle
-                    false // Don't loop
-                );
-            }
+            StaleOverlayKeys.Add(Pair.Key);
         }
     }
-    else
+    for (const FGuid& Key : StaleOverlayKeys)
     {
-        //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: FindOpenTabsContainingDocument returned false or empty"), EN2CLogSeverity::Warning);
+        InjectedGraphOverlays.Remove(Key);
     }
 
-    //FN2CLogger::Get().Log(TEXT("OnActiveTabChanged: EXIT"), EN2CLogSeverity::Warning);
+}
+
+void FN2CEditorIntegration::OnTabForegrounded(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyForegrounded)
+{
+    if (!NewlyForegrounded.IsValid())
+    {
+        return;
+    }
+
+    // Early-out: only process graph tabs. This prevents non-graph tab activations
+    // (Details, Palette, etc.) from scheduling/cancelling timers unnecessarily.
+    TSharedRef<SWidget> TabContent = NewlyForegrounded->GetContent();
+    if (!TabContent->GetTypeAsString().Contains(TEXT("SGraphEditor")))
+    {
+        return;
+    }
+
+    // A graph tab was foregrounded. Schedule overlay injection with a short delay
+    // to let mode switches (e.g., Widget BP Designer->Graph) complete.
+    if (GEditor)
+    {
+        if (TabChangeWrapTimerHandle.IsValid())
+        {
+            GEditor->GetTimerManager()->ClearTimer(TabChangeWrapTimerHandle);
+        }
+
+        GEditor->GetTimerManager()->SetTimer(
+            TabChangeWrapTimerHandle,
+            FTimerDelegate::CreateLambda([this]()
+            {
+                if (!GEditor)
+                {
+                    return;
+                }
+
+                UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+                if (!AssetEditorSubsystem)
+                {
+                    FN2CLogger::Get().Log(TEXT("OnTabForegrounded: AssetEditorSubsystem is null"), EN2CLogSeverity::Warning);
+                    return;
+                }
+
+                // Iterate all open Blueprint editors to find graphs needing overlays.
+                // This avoids relying on the stored ActiveBlueprintEditor which may be stale.
+                TArray<UObject*> EditedAssets = AssetEditorSubsystem->GetAllEditedAssets();
+
+                for (UObject* Asset : EditedAssets)
+                {
+                    UBlueprint* Blueprint = Cast<UBlueprint>(Asset);
+                    if (!Blueprint)
+                    {
+                        continue;
+                    }
+
+                    IAssetEditorInstance* EditorInstance = AssetEditorSubsystem->FindEditorForAsset(Blueprint, false);
+                    if (!EditorInstance)
+                    {
+                        continue;
+                    }
+
+                    FBlueprintEditor* RawEditor = static_cast<FBlueprintEditor*>(EditorInstance);
+
+                    UEdGraph* FocusedGraph = RawEditor->GetFocusedGraph();
+                    if (!FocusedGraph)
+                    {
+                        continue;
+                    }
+
+                    // Check if overlay still exists (weak pointer detects destroyed widgets)
+                    if (TWeakPtr<SN2CGraphOverlay>* ExistingOverlay = InjectedGraphOverlays.Find(FocusedGraph->GraphGuid))
+                    {
+                        if (ExistingOverlay->IsValid())
+                        {
+                            continue; // Overlay still alive
+                        }
+                        // Overlay was destroyed - remove stale entry so it gets re-injected
+                        InjectedGraphOverlays.Remove(FocusedGraph->GraphGuid);
+                    }
+
+                    // Found an editor with an un-overlaid focused graph - wrap it
+                    TSharedRef<FBlueprintEditor> EditorShared = StaticCastSharedRef<FBlueprintEditor>(RawEditor->AsShared());
+                    TWeakPtr<FBlueprintEditor> WeakEditor(EditorShared);
+
+                    // Update the stored active editor to this one
+                    StoreActiveBlueprintEditor(EditorShared);
+
+                    // Inject the overlay
+                    TryWrapFocusedGraphTab(WeakEditor);
+                }
+            }),
+            0.1f, // 100ms delay - gives mode switches time to complete
+            false // Don't loop
+        );
+    }
 }
 
 void FN2CEditorIntegration::SetTranslationInProgress(bool bInProgress)
